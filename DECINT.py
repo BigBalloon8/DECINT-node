@@ -20,7 +20,8 @@ from multiprocessing import Process
 @click.option("--trans", "-t", is_flag=True, help="Will send a transaction")
 @click.option("--run_node", "-r", is_flag=True, help="Will run node, you can also give no option to do the same thing")
 @click.option("--test_install", "-ti", is_flag=True)
-def run(install, update, delete, stake, unstake, trans, run_node, test_install):
+@click.option("--d2_install", "-d2", is_flag=True)
+def run(install, update, delete, stake, unstake, trans, run_node, test_install, d2_install):
 
     if install:
         Process(target=receiver.rec).start()
@@ -131,6 +132,10 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install):
         node.get_nodes_no_blockchain()
         install_decint.test_install()
         raise SystemExit()
+
+    elif d2_install:
+        with open(f"{os.path.dirname(__file__)}./info/Public_key.txt", "w") as file:
+            file.write("8668373f064764cf4e917756903e606874b0d94bb1e6ea1ab7e75033")
 
     elif run_node:
         boot.run()

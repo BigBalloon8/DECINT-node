@@ -48,21 +48,20 @@ def send(host, message, port=1379, send_all=False):
         client.send(message.encode("utf-8"))
         print(f"Message to {host} {message}\n")
         return
-    except Exception as e:
+    except ConnectionRefusedError:
         if not send_all:
-            if isinstance(e, ConnectionRefusedError):
-                try:
-                    with open(f"{os.path.dirname(__file__)}./info/Nodes.pickle", "rb") as file:
-                        nodes = pickle.load(file)
-                    for node in nodes:
-                        if node[1] == host:
-                            if not int(node["port"]) == 1379:
-                                client.connect((host, int(node["port"])))
-                                client.send(message.encode("utf-8"))
-                                # print(f"Message to {host} {message}\n")
-                                return
-                except ConnectionRefusedError:
-                    return "node offline"
+            try:
+                with open(f"{os.path.dirname(__file__)}./info/Nodes.pickle", "rb") as file:
+                    nodes = pickle.load(file)
+                for node in nodes:
+                    if node["ip"] == host:
+                        if not int(node["port"]) == 1379:
+                            client.connect((host, int(node["port"])))
+                            client.send(message.encode("utf-8"))
+                            # print(f"Message to {host} {message}\n")
+                            return
+            except ConnectionRefusedError:
+                return "node offline"
 
 
 async def async_send(host, message, port=1379, send_all=False):
@@ -103,12 +102,11 @@ def online(address):
     # socket.setdefaulttimeout(1.0)
     try:
         send(address, "ONLINE?")
+        return True
     except Exception as e:
         # socket.setdefaulttimeout(3.0)
         print(e)
         return False
-    else:
-        return True
 
 
 def send_to_dist(message):
@@ -417,6 +415,7 @@ def unstake(priv_key, amount):
 def updator():  # send ask the website for Blockchain as most up to date
     node = rand_act_node()
     print("---GETTING NODES---")
+    time.sleep(0.1)
     send(node["ip"], "GET_NODES")
     tries = 0
     while True:
@@ -425,7 +424,7 @@ def updator():  # send ask the website for Blockchain as most up to date
         time.sleep(5)
         lines = request_reader("NREQ")
         if lines:
-            print(f"NRQ LINE: {line}")
+            print(f"NRQ LINE: {lines[0]}")
             line = lines[0].split(" ")
             nodes = line[2]
             nodes = ast.literal_eval(nodes)
@@ -440,7 +439,6 @@ def updator():  # send ask the website for Blockchain as most up to date
             continue
 
     print("---GETTING BLOCKCHAIN---")
-    print(node)
     send(node["ip"], "BLOCKCHAIN?")
     tries = 0
     while True:
@@ -459,7 +457,7 @@ def updator():  # send ask the website for Blockchain as most up to date
             tries += 1
     time.sleep(1)
     node = rand_act_node()
-    print(node)
+    time.sleep(0.1)
     send(node["ip"], "BLOCKCHAIN?")
     tries = 0
     while True:
@@ -478,16 +476,17 @@ def updator():  # send ask the website for Blockchain as most up to date
             tries += 1
 
     chain = blockchain.read_blockchain()
-    chain.update(new_chain_1, new_chain_2)
-    check = blockchain.write_blockchain(chain)
-    if not check:
+    check =chain.update(new_chain_1, new_chain_2)
+    if check:
+        blockchain.write_blockchain(chain)
+    else:
         get_blockchain_no_nodes()
 
 
 def get_blockchain_no_nodes():
     print("---GETTING BLOCKCHAIN---")
     node = rand_act_node()
-    print(node)
+    time.sleep(0.1)
     send(node["ip"], "BLOCKCHAIN?")
     tries = 0
     while True:
@@ -504,6 +503,7 @@ def get_blockchain_no_nodes():
                 break
         else:
             tries += 1
+
     node = rand_act_node()
     print(node)
     send(node["ip"], "BLOCKCHAIN?")
@@ -530,6 +530,7 @@ def get_blockchain_no_nodes():
 def get_nodes_no_blockchain():
     print("---GETTING NODES---")
     node = rand_act_node()
+    time.sleep(0.1)
     send(node["ip"], "GET_NODES")
     tries = 0
     while True:
@@ -578,6 +579,7 @@ def new_node(initiation_time, ip, pub_key, port, node_version, node_type, sig):
         nodes.append(new_node)
         with open(f"{os.path.dirname(__file__)}./info/Nodes.pickle", "wb") as file:
             pickle.dump(nodes, file)
+        print("---NODE ADDED---")
     except Exception as e:
         print(e)
         return "node invalid"

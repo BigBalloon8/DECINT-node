@@ -149,7 +149,7 @@ class Blockchain:
 
         hash1 = hashlib.sha3_512(str(shortened_new_chain1).encode())
         hash2 = hashlib.sha3_512(str(shortened_new_chain2).encode())
-        if hash1 == hash2:
+        if hash1.hexdigest() == hash2.hexdigest():
             new_chain = new_chain1
         else:
             return False
