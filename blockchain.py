@@ -121,9 +121,41 @@ class Blockchain:
         hex_hashed = hashed.hexdigest()
         return hex_hashed
 
-    def update(self, new_chain):
+    def update(self, new_chain1, new_chain2):
+        index = 0
+        for block in new_chain1[::-1]:  # removing invalid blocks and comparing with other
+            if isinstance(block[-1], list):
+                if not block[-1][0]:
+                    index += 1
+                    continue
+                else:
+                    shortened_new_chain1 = new_chain1[:-index]
+                    break
+            else:
+                index += 1
+                continue
+
+        for block in new_chain2[::-1]:  # removing invalid blocks and comparing with other
+            if isinstance(block[-1], list):
+                if not block[-1][0]:
+                    index += 1
+                    continue
+                else:
+                    shortened_new_chain2 = new_chain1[:-index]
+                    break
+            else:
+                index += 1
+                continue
+
+        hash1 = hashlib.sha3_512(str(shortened_new_chain1).encode())
+        hash2 = hashlib.sha3_512(str(shortened_new_chain2).encode())
+        if hash1 == hash2:
+            new_chain = new_chain1
+        else:
+            return False
         self.chain = new_chain
         print("BLOCKCHAIN UPDATED SUCCESSFULLY")
+        return True
 
     # @jit(nopython=True)
     def wallet_value(self, wallet_address, block_index=None):

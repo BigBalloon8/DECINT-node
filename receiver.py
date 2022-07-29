@@ -2,7 +2,7 @@ import node
 import os
 
 
-def rec(my_ip):
+def rec():
     print("---RECEIVER STARTED---")
     while True:
         message, address = node.receive()
@@ -18,4 +18,4 @@ def rec(my_ip):
 
 
 if __name__ == "__main__":
-    rec(input("IP: "))
+    rec()

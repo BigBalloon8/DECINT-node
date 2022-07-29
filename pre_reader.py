@@ -17,6 +17,7 @@ def read():
                     node.send(message[0], f"ERROR {e}")
                     print(message[1], e)
                     continue
+
                 if message[1] == "ONLINE?":
                     #print(f"yh sent to {message[0]}")
                     node.send(message[0], "yh")

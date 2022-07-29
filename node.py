@@ -28,7 +28,7 @@ def receive():
     while True:
         try:
             client, address = server.accept()
-            message = client.recv(2048).decode("utf-8")#.split(" ")
+            message = client.recv(2048).decode("utf-8")  # .split(" ")
             server.close()
             return message, address
         except Exception as e:
@@ -46,7 +46,7 @@ def send(host, message, port=1379, send_all=False):
     try:
         client.connect((host, port))
         client.send(message.encode("utf-8"))
-        #print(f"Message to {host} {message}\n")
+        print(f"Message to {host} {message}\n")
         return
     except Exception as e:
         if not send_all:
@@ -59,10 +59,11 @@ def send(host, message, port=1379, send_all=False):
                             if not int(node["port"]) == 1379:
                                 client.connect((host, int(node["port"])))
                                 client.send(message.encode("utf-8"))
-                                #print(f"Message to {host} {message}\n")
+                                # print(f"Message to {host} {message}\n")
                                 return
-                except ConnectionRefusedError as e:
+                except ConnectionRefusedError:
                     return "node offline"
+
 
 async def async_send(host, message, port=1379, send_all=False):
     """
@@ -92,29 +93,23 @@ async def async_send(host, message, port=1379, send_all=False):
                 except Exception as e:
                     return "node offline"
 
+
 # check if nodes online
 def online(address):
     """
     asks if a node is online and if it is it returns yh
     """
     print(address)
-    #socket.setdefaulttimeout(1.0)
+    # socket.setdefaulttimeout(1.0)
     try:
         send(address, "ONLINE?")
     except Exception as e:
-        #socket.setdefaulttimeout(3.0)
+        # socket.setdefaulttimeout(3.0)
         print(e)
         return False
-    #socket.setdefaulttimeout(3.0)
-    time.sleep(5)
-    message = request_reader("YH", ip=address)
-    if message:
-        message = message[0].split(" ")
-        if message[1] == "yh":
-            return True
     else:
-        print("L")
-        return False
+        return True
+
 
 def send_to_dist(message):
     """
@@ -128,6 +123,7 @@ def send_to_dist(message):
             dist_nodes.append(d_node)
     d_node = random.choice(dist_nodes)
     send(d_node["ip"], message)
+
 
 def rand_act_node(num_nodes=1):
     """
@@ -143,7 +139,7 @@ def rand_act_node(num_nodes=1):
         me = socket.gethostbyname(socket.gethostname())
         node_index = random.randint(0, len(all_nodes) - 1)
         node = all_nodes[node_index]
-        #print(node)
+        # print(node)
         if node["pub_key"] == key or node["ip"] == me:
             continue
         alive = online(node["ip"])
@@ -156,6 +152,7 @@ def rand_act_node(num_nodes=1):
     else:
         return nodes
 
+
 def dist_request_reader(type):
     with open(f"{os.path.dirname(__file__)}./info/Nodes.pickle", "rb") as file:
         nodes = pickle.load(file)
@@ -163,7 +160,7 @@ def dist_request_reader(type):
         lines = file.read().splitlines()
     dist_nodes = [node_ for node_ in nodes if node_["node_type"] == "dist"]
 
-    trans_protocols = ["TRANS",  "STAKE", "UNSTAKE", "AI_JOB_ANNOUNCE"]
+    trans_protocols = ["TRANS", "STAKE", "UNSTAKE", "AI_JOB_ANNOUNCE"]
     blockchain_protocols = ["VALID", "TRANS_INVALID"]
 
     trans_lines = []
@@ -179,17 +176,17 @@ def dist_request_reader(type):
                 break
 
         if dist_node:
-            line.pop(0)
-            line.pop(0)
+            message.pop(0)
+            message.pop(0)
 
             if line[0] == "" or line[0] == "\n":
                 lines.remove(" ".join(line))
 
-            elif line[1] in trans_protocols:
-                trans_lines.append(" ".join(line))
+            elif message[1] in trans_protocols:
+                trans_lines.append(" ".join(message))
 
-            elif line[1] in blockchain_protocols:
-                blockchain_lines.append(" ".join(line))
+            elif message[1] in blockchain_protocols:
+                blockchain_lines.append(" ".join(message))
 
             else:
                 left_over_lines.append(" ".join(line))
@@ -280,7 +277,7 @@ def request_reader(type, ip="192.168.68.1"):
             else:
                 node_lines.append(" ".join(line))
 
-        #TODO make a fucntion to clear to stop copy paste of the file clear
+        # TODO make a fucntion to clear to stop copy paste of the file clear
         if type == "YH":
             if len(yh_lines) != 0:
                 new_lines = []
@@ -368,9 +365,9 @@ async def send_to_all(message):
     """
     with open(f"{os.path.dirname(__file__)}./info/Nodes.pickle", "rb") as file:
         all_nodes = pickle.load(file)
-    for f in asyncio.as_completed([async_send(node["ip"], message, port=node["port"], send_all=True) for node in all_nodes]):
+    for f in asyncio.as_completed(
+            [async_send(node["ip"], message, port=node["port"], send_all=True) for node in all_nodes]):
         result = await f
-        
 
 
 def announce(pub_key, port, version, node_type, priv_key):
@@ -401,48 +398,24 @@ def delete(pub_key, priv_key):
     asyncio.run(send_to_all(f"DELETE {update_time} {pub_key} {sig}"))
 
 
-
 def stake(priv_key, amount):
     priv_key = SigningKey.from_string(bytes.fromhex(priv_key), curve=SECP112r2)
     pub_key = priv_key.verifying_key
     stake_time = time.time()
-    sig = priv_key.sign(("STAKE "+str(stake_time)).encode())
+    sig = priv_key.sign(("STAKE " + str(stake_time)).encode())
     send_to_dist(f"STAKE {stake_time} {pub_key} {amount} {sig}")
+
 
 def unstake(priv_key, amount):
     priv_key = SigningKey.from_string(bytes.fromhex(priv_key), curve=SECP112r2)
     pub_key = priv_key.verifying_key
     stake_time = time.time()
-    sig = priv_key.sign(("UNSTAKE "+str(stake_time)).encode())
+    sig = priv_key.sign(("UNSTAKE " + str(stake_time)).encode())
     send_to_dist(f"UNSTAKE {stake_time} {pub_key} {amount} {sig}")
 
 
 def updator():  # send ask the website for Blockchain as most up to date
-    print("---GETTING BLOCKCHAIN---")
     node = rand_act_node()
-    print(node)
-    send(node["ip"], "BLOCKCHAIN?")
-    tries = 0
-    while True:
-        if tries == 10:
-            quit()
-        time.sleep(5)
-        lines = request_reader("BREQ")
-        if lines:
-            for line in lines:
-                line = line.split(" ")
-                if line[0] == node["ip"]:
-                    new_chain = ast.literal_eval(line[2])
-                    chain = blockchain.read_blockchain()
-                    chain.update(new_chain)
-                    print("---BLOCKCHAIN RECEIVED---")
-                    breaker = True
-                    break
-            if breaker:
-                break
-        else:
-            tries += 1
-
     print("---GETTING NODES---")
     send(node["ip"], "GET_NODES")
     tries = 0
@@ -452,20 +425,107 @@ def updator():  # send ask the website for Blockchain as most up to date
         time.sleep(5)
         lines = request_reader("NREQ")
         if lines:
-            for line in lines:
-                print(f"NODE LINE: {line}")
-                line = line.split(" ")
-                nodes = line[2]
-                nodes = ast.literal_eval(nodes)
-                if line[0] == node["ip"]:
-                    with open(f"{os.path.dirname(__file__)}./info/Nodes.pickle", "wb") as file:
-                        pickle.dump(nodes, file)
-                    print("---NODES RECEIVED---")
-                    print("NODES UPDATED SUCCESSFULLY")
-                    return
+            print(f"NRQ LINE: {line}")
+            line = lines[0].split(" ")
+            nodes = line[2]
+            nodes = ast.literal_eval(nodes)
+            if line[0] == node["ip"]:
+                with open(f"{os.path.dirname(__file__)}./info/Nodes.pickle", "wb") as file:
+                    pickle.dump(nodes, file)
+                #print("---NODES RECEIVED---")
+                print("NODES UPDATED SUCCESSFULLY")
+                break
         else:
             tries += 1
             continue
+
+    print("---GETTING BLOCKCHAIN---")
+    print(node)
+    send(node["ip"], "BLOCKCHAIN?")
+    tries = 0
+    while True:
+        if tries == 10:
+            get_blockchain_no_nodes()
+            return
+        time.sleep(5)
+        lines = request_reader("BREQ")
+        if lines:
+            line = lines[0].split(" ")
+            if line[0] == node["ip"]:
+                new_chain_1 = ast.literal_eval(line[2])
+                print("---BLOCKCHAIN 1 RECEIVED---")
+                break
+        else:
+            tries += 1
+    time.sleep(1)
+    node = rand_act_node()
+    print(node)
+    send(node["ip"], "BLOCKCHAIN?")
+    tries = 0
+    while True:
+        if tries == 10:
+            get_blockchain_no_nodes()
+            return
+        time.sleep(5)
+        lines = request_reader("BREQ")
+        if lines:
+            line = lines[0].split(" ")
+            if line[0] == node["ip"]:
+                new_chain_2 = ast.literal_eval(line[2])
+                print("---BLOCKCHAIN 2 RECEIVED---")
+                break
+        else:
+            tries += 1
+
+    chain = blockchain.read_blockchain()
+    chain.update(new_chain_1, new_chain_2)
+    check = blockchain.write_blockchain(chain)
+    if not check:
+        get_blockchain_no_nodes()
+
+
+def get_blockchain_no_nodes():
+    print("---GETTING BLOCKCHAIN---")
+    node = rand_act_node()
+    print(node)
+    send(node["ip"], "BLOCKCHAIN?")
+    tries = 0
+    while True:
+        if tries == 10:
+            get_blockchain_no_nodes()
+            return
+        time.sleep(5)
+        lines = request_reader("BREQ")
+        if lines:
+            line = lines[0].split(" ")
+            if line[0] == node["ip"]:
+                new_chain_1 = ast.literal_eval(line[2])
+                print("---BLOCKCHAIN 1 RECEIVED---")
+                break
+        else:
+            tries += 1
+    node = rand_act_node()
+    print(node)
+    send(node["ip"], "BLOCKCHAIN?")
+    tries = 0
+    while True:
+        if tries == 10:
+            get_blockchain_no_nodes()
+            return
+        time.sleep(5)
+        lines = request_reader("BREQ")
+        if lines:
+            line = lines[0].split(" ")
+            if line[0] == node["ip"]:
+                new_chain_2 = ast.literal_eval(line[2])
+                print("---BLOCKCHAIN 2 RECEIVED---")
+                break
+        else:
+            tries += 1
+
+    chain = blockchain.read_blockchain()
+    chain.update(new_chain_1, new_chain_2)
+    check = blockchain.write_blockchain(chain)
 
 def get_nodes_no_blockchain():
     print("---GETTING NODES---")
@@ -492,6 +552,7 @@ def get_nodes_no_blockchain():
         else:
             tries += 1
             continue
+
 
 def send_node(host):
     with open(f"{os.path.dirname(__file__)}./info/Nodes.pickle", "rb") as file:
@@ -583,10 +644,11 @@ class ValueTypeError(NodeError):
 class UnrecognisedArg(NodeError):
     pass
 
+
 #  TODO add AI_JOB protocols
 def message_handler(message):
     try:
-        if isinstance(message,str):
+        if isinstance(message, str):
             message = message.split(" ")
         protocol = message[1]
     except IndexError:
@@ -757,7 +819,7 @@ def message_handler(message):
     elif protocol == "yh":
         pass
 
-    #elif protocol == ""
+    # elif protocol == ""
 
     else:
         raise UnrecognisedCommand("protocol unrecognised")

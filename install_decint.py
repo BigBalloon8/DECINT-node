@@ -12,14 +12,12 @@ ask for wallet to use and how much to stake
 announce self and time of creation
 """
 def run():
-    os.system("pip3 install ecdsa objsize")
-
     print("\nBy Using our product you except our Terms and Conditions")
     accept = input("To Accept type 'ACCEPT'  : ")
     if accept != "ACCEPT":
         exit()
 
-    print("Your Private key is needed to verify that your public key belongs to you make sure you are using the official version of decint")
+    print("Your Private key is needed to verify that your public key belongs to you, make sure you are using the official version of decint")
     priv_key = input("Private Key: ")
     print("This is the the key that will be rewarded")
     pub_key = input("Public Key: ")
@@ -48,4 +46,5 @@ def test_install():
         file.write(hex_priv)
     node.announce(hex_pub,"1379",node.__version__,"Blockchain", hex_priv)
 
-test_install()
+if __name__ == '__main__':
+    test_install()

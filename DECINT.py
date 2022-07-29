@@ -7,6 +7,9 @@ import pickle
 from ecdsa import SigningKey, VerifyingKey, SECP112r2
 import boot
 import os
+import threading
+import receiver
+from multiprocessing import Process
 
 @click.command()
 @click.option("--install", "-i", is_flag=True, help="Will Install DecInt")
@@ -16,17 +19,23 @@ import os
 @click.option("--unstake", "-un", is_flag=True, help="Will send a Unstake request")
 @click.option("--trans", "-t", is_flag=True, help="Will send a transaction")
 @click.option("--run_node", "-r", is_flag=True, help="Will run node, you can also give no option to do the same thing")
-def run(install, update, delete, stake, unstake, trans, run_node):
+@click.option("--test_install", "-ti", is_flag=True)
+def run(install, update, delete, stake, unstake, trans, run_node, test_install):
 
     if install:
+        Process(target=receiver.rec).start()
+        node.get_nodes_no_blockchain()
         with open(f"{os.path.dirname(__file__)}./info/Public_key.txt", "r") as file:
             key = file.read()
+            print(f"key:{key}.")
         if not key:
             install_decint.run()
         else:
             click.echo("DECINT is already installed (if DECINT is not installed run install_decint.py)\n")
+        raise SystemExit()
 
     elif update:
+        Process(target=receiver.rec).start()
         node.get_nodes_no_blockchain()
         click.prompt("In order to update your Node please enter a bit of information")
         time.sleep(2)
@@ -40,8 +49,10 @@ def run(install, update, delete, stake, unstake, trans, run_node):
         new_key = click.prompt("Enter New Public Key")
         priv_key = click.prompt("Enter Private Key")
         node.update(pub_key, port, version, priv_key, new_key)
+        raise SystemExit()
 
     elif delete:
+        Process(target=receiver.rec).start()
         node.get_nodes_no_blockchain()
         click.prompt("In order to delete your Node please enter a bit of information")
         time.sleep(2)
@@ -49,8 +60,10 @@ def run(install, update, delete, stake, unstake, trans, run_node):
             pub_key = file.read()
         priv_key = click.prompt("Private Key", type=str)
         node.delete(pub_key, priv_key)
+        raise SystemExit()
 
     elif stake:
+        Process(target=receiver.rec).start()
         node.get_nodes_no_blockchain()
         priv_key = click.prompt("Private Key", type=str)
         with open(f"{os.path.dirname(__file__)}./info/Public_key.txt", "r") as file:
@@ -67,8 +80,10 @@ def run(install, update, delete, stake, unstake, trans, run_node):
         priv_key = VerifyingKey.from_string(bytes.fromhex(priv_key), curve=SECP112r2)
         sig = str(priv_key.sign(current_time.encode()).hex())
         node.send_to_dist(f"STAKE {current_time} {pub_key} {amount} {sig}")
+        raise SystemExit()
 
     elif unstake:
+        Process(target=receiver.rec).start()
         node.get_nodes_no_blockchain()
         priv_key = click.prompt("Private Key", type=str)
         with open(f"{os.path.dirname(__file__)}./info/Public_key.txt", "r") as file:
@@ -87,16 +102,18 @@ def run(install, update, delete, stake, unstake, trans, run_node):
             else:
                 click.echo("\nInserted value is more than available")
         current_time = str(time.time())
-        priv_key = VerifyingKey.from_string(bytes.fromhex(priv_key), curve=SECP112r2)
+        priv_key = SigningKey.from_string(bytes.fromhex(priv_key), curve=SECP112r2)
         sig = str(priv_key.sign(current_time.encode()).hex())
         node.send_to_dist(f"UNSTAKE {current_time} {pub_key} {amount} {sig}")
+        raise SystemExit()
 
     elif trans:
+        Process(target=receiver.rec).start()
         node.get_nodes_no_blockchain()
         priv_key = click.prompt("Private Key", type=str)
         with open(f"{os.path.dirname(__file__)}./info/Public_key.txt", "r") as file:
             pub_key = file.read()
-        receiver = click.prompt("Receiver Public Key", type=str)
+        receiver_key = click.prompt("Receiver Public Key", type=str)
         click.echo("\nCalculating wallet value")
         val = blockchain.get_wallet_val(pub_key)
         while True:
@@ -105,8 +122,15 @@ def run(install, update, delete, stake, unstake, trans, run_node):
                 break
             else:
                 click.echo("\nInserted value is more than available")
-        trans = blockchain.transaction(priv_key, receiver, amount)
+        trans = blockchain.transaction(priv_key, receiver_key, amount)
         node.send_to_dist(f"TRANS {' '.join(trans)}")
+        raise SystemExit()
+
+    elif test_install:
+        Process(target=receiver.rec).start()
+        node.get_nodes_no_blockchain()
+        install_decint.test_install()
+        raise SystemExit()
 
     elif run_node:
         boot.run()

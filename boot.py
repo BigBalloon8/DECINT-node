@@ -28,7 +28,7 @@ def run():
     """
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        executor.submit(receiver.rec, local_ip)  # start recieving ✅
+        executor.submit(receiver.rec)  # start recieving ✅
         executor.submit(node.updator)  # update Blockchain & Nodes ✅
         executor.submit(reader.read)
         executor.submit(trans_reader.read)
