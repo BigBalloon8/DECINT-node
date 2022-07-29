@@ -24,7 +24,8 @@ from multiprocessing import Process
 def run(install, update, delete, stake, unstake, trans, run_node, test_install, d2_install):
 
     if install:
-        Process(target=receiver.rec).start()
+        receive = Process(target=receiver.rec)
+        receive.start()
         node.get_nodes_no_blockchain()
         with open(f"{os.path.dirname(__file__)}./info/Public_key.txt", "r") as file:
             key = file.read()
@@ -33,10 +34,11 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
             install_decint.run()
         else:
             click.echo("DECINT is already installed (if DECINT is not installed run install_decint.py)\n")
-        raise SystemExit()
+        receive.terminate()
 
     elif update:
-        Process(target=receiver.rec).start()
+        receive = Process(target=receiver.rec)
+        receive.start()
         node.get_nodes_no_blockchain()
         click.prompt("In order to update your Node please enter a bit of information")
         time.sleep(2)
@@ -50,10 +52,11 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
         new_key = click.prompt("Enter New Public Key")
         priv_key = click.prompt("Enter Private Key")
         node.update(pub_key, port, version, priv_key, new_key)
-        raise SystemExit()
+        receive.terminate()
 
     elif delete:
-        Process(target=receiver.rec).start()
+        receive = Process(target=receiver.rec)
+        receive.start()
         node.get_nodes_no_blockchain()
         click.prompt("In order to delete your Node please enter a bit of information")
         time.sleep(2)
@@ -61,10 +64,11 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
             pub_key = file.read()
         priv_key = click.prompt("Private Key", type=str)
         node.delete(pub_key, priv_key)
-        raise SystemExit()
+        receive.terminate()
 
     elif stake:
-        Process(target=receiver.rec).start()
+        receive = Process(target=receiver.rec)
+        receive.start()
         node.get_nodes_no_blockchain()
         priv_key = click.prompt("Private Key", type=str)
         with open(f"{os.path.dirname(__file__)}./info/Public_key.txt", "r") as file:
@@ -81,10 +85,11 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
         priv_key = VerifyingKey.from_string(bytes.fromhex(priv_key), curve=SECP112r2)
         sig = str(priv_key.sign(current_time.encode()).hex())
         node.send_to_dist(f"STAKE {current_time} {pub_key} {amount} {sig}")
-        raise SystemExit()
+        receive.terminate()
 
     elif unstake:
-        Process(target=receiver.rec).start()
+        receive = Process(target=receiver.rec)
+        receive.start()
         node.get_nodes_no_blockchain()
         priv_key = click.prompt("Private Key", type=str)
         with open(f"{os.path.dirname(__file__)}./info/Public_key.txt", "r") as file:
@@ -106,10 +111,11 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
         priv_key = SigningKey.from_string(bytes.fromhex(priv_key), curve=SECP112r2)
         sig = str(priv_key.sign(current_time.encode()).hex())
         node.send_to_dist(f"UNSTAKE {current_time} {pub_key} {amount} {sig}")
-        raise SystemExit()
+        receive.terminate()
 
     elif trans:
-        Process(target=receiver.rec).start()
+        receive = Process(target=receiver.rec)
+        receive.start()
         node.get_nodes_no_blockchain()
         priv_key = click.prompt("Private Key", type=str)
         with open(f"{os.path.dirname(__file__)}./info/Public_key.txt", "r") as file:
@@ -125,13 +131,14 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
                 click.echo("\nInserted value is more than available")
         trans = blockchain.transaction(priv_key, receiver_key, amount)
         node.send_to_dist(f"TRANS {' '.join(trans)}")
-        raise SystemExit()
+        receive.terminate()
 
     elif test_install:
-        Process(target=receiver.rec).start()
+        receive = Process(target=receiver.rec)
+        receive.start()
         node.get_nodes_no_blockchain()
         install_decint.test_install()
-        raise SystemExit()
+        receive.terminate()
 
     elif d2_install:
         with open(f"{os.path.dirname(__file__)}./info/Public_key.txt", "w") as file:
