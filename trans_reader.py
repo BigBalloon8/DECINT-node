@@ -82,7 +82,7 @@ def AI_reward_handler(line):
 
 
 def read():
-    time.sleep(60)
+    time.sleep(20)
     print("---TRANSACTION READER STARTED---")
     while True:
         trans_lines = node.dist_request_reader("TRANS")

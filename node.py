@@ -841,14 +841,8 @@ def message_handler(message):
         except:
             raise ValueTypeError("amount not given as float")
 
-    elif protocol == "UNSTAKE":
-        # host, UNSTAKE, time of unstake, public key, amount, sig
-        if len(message) != 6:
-            raise UnrecognisedArg("number of args given incorrect")
+    elif protocol == "UNSTAKE": #TODO complete
+        pass
 
-        try:
-            float(message[2])
-            if "." not in message[2]:
-                Exception() # time not given as float
     else:
         raise UnrecognisedCommand("protocol unrecognised")
