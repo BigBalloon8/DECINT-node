@@ -117,7 +117,7 @@ def send_to_dist(message):
         all_nodes = pickle.load(file)
     dist_nodes = []
     for d_node in all_nodes:
-        if d_node["type"] == "dist":
+        if d_node["node_type"] == "dist":
             dist_nodes.append(d_node)
     d_node = random.choice(dist_nodes)
     send(d_node["ip"], message)
@@ -819,7 +819,36 @@ def message_handler(message):
     elif protocol == "yh":
         pass
 
-    # elif protocol == ""
+    elif protocol == "STAKE":
+        # host, STAKE, time of stake, public key, amount, sig
+        if len(message) != 6:
+            raise UnrecognisedArg("number of args given incorrect")
 
+        try:
+            float(message[2])
+            if "." not in message[2]:
+                Exception()
+        except:
+            raise ValueTypeError("time not given as float")
+
+        if len(message[3]) != 56:
+            raise UnrecognisedArg("Public Key is the wrong size")
+
+        try:
+            float(message[4])
+            if "." not in message[4]:
+                Exception()
+        except:
+            raise ValueTypeError("amount not given as float")
+
+    elif protocol == "UNSTAKE":
+        # host, UNSTAKE, time of unstake, public key, amount, sig
+        if len(message) != 6:
+            raise UnrecognisedArg("number of args given incorrect")
+
+        try:
+            float(message[2])
+            if "." not in message[2]:
+                Exception() # time not given as float
     else:
         raise UnrecognisedCommand("protocol unrecognised")

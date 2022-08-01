@@ -72,6 +72,7 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
         receive.start()
         node.get_nodes_no_blockchain()
         priv_key = click.prompt("Private Key", type=str)
+        click.echo(f"{[priv_key]}")
         with open(f"{os.path.dirname(__file__)}./info/Public_key.txt", "r") as file:
             pub_key = file.read()
         click.echo("\nCalculating wallet value")
@@ -83,7 +84,7 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
             else:
                 click.echo("\nInserted value is more than available")
         current_time = str(time.time())
-        priv_key = VerifyingKey.from_string(bytes.fromhex(priv_key), curve=SECP112r2)
+        priv_key = SigningKey.from_string(bytes.fromhex(priv_key), curve=SECP112r2)
         sig = str(priv_key.sign(current_time.encode()).hex())
         node.send_to_dist(f"STAKE {current_time} {pub_key} {amount} {sig}")
         receive.terminate()
@@ -92,7 +93,8 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
         receive = Process(target=receiver.rec)
         receive.start()
         node.get_nodes_no_blockchain()
-        priv_key = click.prompt("Private Key", type=str)
+        priv_key = input("Private Key: ")
+        click.echo(f"{[type(priv_key)]}")
         with open(f"{os.path.dirname(__file__)}./info/Public_key.txt", "r") as file:
             pub_key = file.read()
         click.echo("\nCalculating amount your wallet has staked")
