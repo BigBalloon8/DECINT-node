@@ -533,9 +533,7 @@ def get_nodes_no_blockchain():
     time.sleep(0.1)
     send(node["ip"], "GET_NODES")
     tries = 0
-    while True:
-        if tries == 10:
-            quit()
+    while tries < 10:
         time.sleep(5)
         lines = request_reader("NREQ")
         if lines:

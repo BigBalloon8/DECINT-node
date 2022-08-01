@@ -54,13 +54,13 @@ def quick_sort_block(arr):
 class Blockchain:
 
     def __init__(self):
-        self.chain = [[["0"], {"time": 0.0, "sender": "0", "reciever": "0", "amount": 2 ** 23, "sig": "0"},
+        self.chain = [[["0"], {"time": 0.0, "sender": "0", "receiver": "0", "amount": 2 ** 23, "sig": "0"},
                        ["c484eb3cfd69ad6c289dcc1e1b671929cdb7b6a63f75a4d21e8d1e126ad8433d", 0.0], [0],
                        [True, 1.0, "0"]],
                       [["c484eb3cfd69ad6c289dcc1e1b671929cdb7b6a63f75a4d21e8d1e126ad8433d"],
                        {"time": 901.0, "sender": "0",
-                        "receiver": "8668373f064764cf4e917756903e606874b0d94bb1e6ea1ab7e75033", "amount": 2 ** 23,
-                        "sig": "0"}, ["89ecd70035817c54d5aaef888e3e9d9a8ddd2d4c96b20c73032d0a454dc066a2", 901.0], [0],
+                        "receiver": "6efa5bfa8a9bfebaacacf9773f830939d8cb4a2129c1a2aaafaaf549", "amount": 2 ** 23,
+                        "sig": "0"}, ["a74a0cfbf0dbcb5a283b94e41c09716de1529201ff541e7faaaeef3a638cbc86", 901.0], [0],
                        [True, 902.0, "0"]]
                       ]
 
@@ -233,6 +233,7 @@ class Blockchain:
 
             elif relative_time > 0:
                 self.chain[-1].append(trans)
+                print("--TRANSACTION ADDED--")
 
         elif relative_time > 900:
             b_time = self.chain[-1][-1]["time"]
@@ -252,6 +253,7 @@ class Blockchain:
 
             new_block = [[block_hash], trans]
             self.chain.append(new_block)
+            print("--NEW BLOCK ADDED--")
 
     def add_protocol(self, announcement):
         relative_time = int(float(announcement["time"]) - float(self.chain[-1][1]["time"]))
@@ -478,8 +480,11 @@ def key_tester():
         print("LLLLL")
 
 
-def tester(main_prv, main_pub):
-    while True:
+def tester():
+    
+    for _ in range(1000):
+        main_prv = os.environ["PUB_KEY"]
+        main_pub = os.environ["PUB_KEY"]
         time.sleep(1)
         path1 = bool(random.randint(0, 1))
         if path1:
@@ -489,22 +494,22 @@ def tester(main_prv, main_pub):
             with open(f"{os.path.dirname(__file__)}./testing_keys.txt", "a") as file:
                 file.write(f"{hex_priv} {hex_pub} {amount}\n")
             trans = transaction(main_prv, hex_pub, amount)
-            node.send_to_all(f"TRANS {trans[0]} {trans[1]} {trans[2]} {trans[3]} {trans[4]}")
+            node.send_to_dist(f"TRANS {trans[0]} {trans[1]} {trans[2]} {trans[3]} {trans[4]}")
         else:
             with open(f"{os.path.dirname(__file__)}./testing_keys.txt", "r") as file:
                 test_keys = file.read().split("\n")
             wallet = random.choices(test_keys)
             wallet = wallet.split(" ")
             trans = transaction(wallet[0], main_pub, 25.0)
-            node.send_to_all(f"TRANS {trans[0]} {trans[1]} {trans[2]} {trans[3]} {trans[4]}")
+            node.send_to_dist(f"TRANS {' '.join(trans)}")
 
 
 if __name__ == "__main__":
     # trans = test_transaction("", "da886ae3ec4c355170586317fed0102854f2b9705f58772415577265", 100)
     # print(trans)
     # key_tester()
-    # CHAIN = Blockchain()
+    CHAIN = Blockchain()
     # print("hash: ", CHAIN.hash_block(1))
-    # write_blockchain(CHAIN)
+    write_blockchain(CHAIN)
     # print(read_blockchain().send_blockchain())
     pass

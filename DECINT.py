@@ -21,7 +21,8 @@ from multiprocessing import Process
 @click.option("--run_node", "-r", is_flag=True, help="Will run node, you can also give no option to do the same thing")
 @click.option("--test_install", "-ti", is_flag=True)
 @click.option("--d2_install", "-d2", is_flag=True)
-def run(install, update, delete, stake, unstake, trans, run_node, test_install, d2_install):
+@click.option("--test_trans", "-tt", is_flag=True)
+def run(install, update, delete, stake, unstake, trans, run_node, test_install, d2_install, test_trans):
 
     if install:
         receive = Process(target=receiver.rec)
@@ -40,7 +41,7 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
         receive = Process(target=receiver.rec)
         receive.start()
         node.get_nodes_no_blockchain()
-        click.prompt("In order to update your Node please enter a bit of information")
+        click.echo("In order to update your Node please enter a bit of information")
         time.sleep(2)
         with open(f"{os.path.dirname(__file__)}./info/Public_key.txt", "r") as file:
             pub_key = file.read()
@@ -58,7 +59,7 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
         receive = Process(target=receiver.rec)
         receive.start()
         node.get_nodes_no_blockchain()
-        click.prompt("In order to delete your Node please enter a bit of information")
+        click.echo("In order to delete your Node please enter a bit of information")
         time.sleep(2)
         with open(f"{os.path.dirname(__file__)}./info/Public_key.txt", "r") as file:
             pub_key = file.read()
@@ -142,7 +143,10 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
 
     elif d2_install:
         with open(f"{os.path.dirname(__file__)}./info/Public_key.txt", "w") as file:
-            file.write("8668373f064764cf4e917756903e606874b0d94bb1e6ea1ab7e75033")
+            file.write("6efa5bfa8a9bfebaacacf9773f830939d8cb4a2129c1a2aaafaaf549")
+
+    elif test_trans:
+        blockchain.tester()
 
     elif run_node:
         boot.run()
