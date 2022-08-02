@@ -6,7 +6,7 @@ import blockchain
 
 
 def read():
-    time.sleep(20)
+    #time.sleep(20)
     print("---READER STARTED---")
     ip = get('https://api.ipify.org').text
     while True:

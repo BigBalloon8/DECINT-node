@@ -82,11 +82,12 @@ def AI_reward_handler(line):
 
 
 def read():
-    time.sleep(20)
+    #time.sleep(20)
     print("---TRANSACTION READER STARTED---")
     while True:
         trans_lines = node.dist_request_reader("TRANS")
         if trans_lines:
+            print(f"TRANS LINES: {trans_lines}")
             for trans_line in trans_lines:
                 if "TRANS" in trans_line:
                     trans_handler(trans_line)

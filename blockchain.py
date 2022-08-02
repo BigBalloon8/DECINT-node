@@ -230,6 +230,7 @@ class Blockchain:
                         self.chain[-1][0] = [self.hash_block(temp_block)]
                         self.chain[-2][-2][0] += (trans["amount"] * 0.01)
                         self.chain[-2][-1][1] = trans["time"]
+                        print("--ADDED TO PREVIOUS BLOCK--")
 
             elif relative_time > 0:
                 self.chain[-1].append(trans)
@@ -276,9 +277,11 @@ class Blockchain:
                         self.chain[-2][-3] = [self.hash_block(temp_block), announcement["time"]]
                         self.chain[-1][0] = [self.hash_block(temp_block)]
                         self.chain[-2][-1][1] = announcement["time"]
+                        print("--STAKE ADDED TO PREVIOUS BLOCK--")
 
             elif relative_time > 0:  # if in current block
                 self.chain[-1].append(announcement)
+                print("--STAKE ADDED--")
 
         elif relative_time > 900:  # if new block is needed
             b_time = self.chain[-1][-1]["time"]
@@ -298,6 +301,7 @@ class Blockchain:
 
             new_block = [[block_hash], announcement]
             self.chain.append(new_block)
+            print("--NEW BLOCK--")
 
     def validate(self, block_index: int, time_of_validation: float = 0.0, validating: bool = True):
         trans_index = 0

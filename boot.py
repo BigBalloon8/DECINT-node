@@ -29,11 +29,12 @@ def run():
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
         executor.submit(receiver.rec)  # start recieving ✅
+        executor.submit(pre_reader.read)
         executor.submit(node.updator).result() # update Blockchain & Nodes ✅ # .result() is used to wait for the thread to finish
         executor.submit(reader.read)
         executor.submit(trans_reader.read)
         executor.submit(validator.am_i_validator)
-        executor.submit(pre_reader.read)
+
 
 
 if __name__ == '__main__':

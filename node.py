@@ -167,18 +167,20 @@ def dist_request_reader(type):
 
     for line in lines:
         message = line.split(" ")
+        print("dist lines: ", line)
         dist_node = False
         for node_ in dist_nodes:
-            if node_["ip"] == line[0]:
+            if node_["ip"] == message[0]:
                 dist_node = True
+                print("TRUE")
                 break
 
         if dist_node:
             message.pop(0)
             message.pop(0)
 
-            if line[0] == "" or line[0] == "\n":
-                lines.remove(" ".join(line))
+            if message == "" or message == "\n":
+                lines.remove(" ".join(message))
 
             elif message[1] in trans_protocols:
                 trans_lines.append(" ".join(message))
@@ -187,20 +189,20 @@ def dist_request_reader(type):
                 blockchain_lines.append(" ".join(message))
 
             else:
-                left_over_lines.append(" ".join(line))
+                left_over_lines.append(" ".join(message))
 
         if type == "BLOCKCHAIN":
             if len(blockchain_lines) != 0:
                 new_lines = []
-                with open(f"{os.path.dirname(__file__)}./recent_messages.txt", "r") as file:
+                with open(f"{os.path.dirname(__file__)}./dist_messages.txt", "r") as file:
                     file_lines = file.readlines()
                 for f_line in file_lines:
                     f_line.split(" ")
                     if not blockchain_lines[0] in f_line:
                         if not f_line.strip("\n") == "":
                             new_lines.append(f_line)
-                open(f"{os.path.dirname(__file__)}./recent_messages.txt", "w").close()
-                with open(f"{os.path.dirname(__file__)}./recent_messages.txt", "a") as file:
+                open(f"{os.path.dirname(__file__)}./dist_messages.txt", "w").close()
+                with open(f"{os.path.dirname(__file__)}./dist_messages.txt", "a") as file:
                     for n_line in new_lines:
                         file.write(n_line)
             return blockchain_lines
@@ -208,15 +210,15 @@ def dist_request_reader(type):
         if type == "TRANS":
             if len(trans_lines) != 0:
                 new_lines = []
-                with open(f"{os.path.dirname(__file__)}./recent_messages.txt", "r") as file:
+                with open(f"{os.path.dirname(__file__)}./dist_messages.txt", "r") as file:
                     file_lines = file.readlines()
                 for f_line in file_lines:
                     f_line.split(" ")
                     if not trans_lines[0] in f_line:
                         if not f_line.strip("\n") == "":
                             new_lines.append(f_line)
-                open(f"{os.path.dirname(__file__)}./recent_messages.txt", "w").close()
-                with open(f"{os.path.dirname(__file__)}./recent_messages.txt", "a") as file:
+                open(f"{os.path.dirname(__file__)}./dist_messages.txt", "w").close()
+                with open(f"{os.path.dirname(__file__)}./dist_messages.txt", "a") as file:
                     for n_line in new_lines:
                         file.write(n_line)
             return trans_lines
@@ -224,15 +226,15 @@ def dist_request_reader(type):
         if type == "LEFT_OVER":
             if len(left_over_lines) != 0:
                 new_lines = []
-                with open(f"{os.path.dirname(__file__)}./recent_messages.txt", "r") as file:
+                with open(f"{os.path.dirname(__file__)}./dist_messages.txt", "r") as file:
                     file_lines = file.readlines()
                 for f_line in file_lines:
                     f_line.split(" ")
                     if not left_over_lines[0] in f_line:
                         if not f_line.strip("\n") == "":
                             new_lines.append(f_line)
-                open(f"{os.path.dirname(__file__)}./recent_messages.txt", "w").close()
-                with open(f"{os.path.dirname(__file__)}./recent_messages.txt", "a") as file:
+                open(f"{os.path.dirname(__file__)}./dist_messages.txt", "w").close()
+                with open(f"{os.path.dirname(__file__)}./dist_messages.txt", "a") as file:
                     for n_line in new_lines:
                         file.write(n_line)
 
@@ -594,7 +596,7 @@ def update_node(ip, update_time, old_key, new_key, port, node_version, sig):
                 node["pub_key"] = new_key
                 node["port"] = port
                 node["version"] = node_version
-        with open("info/Nodes.pickle", "wb") as file:
+        with open(f"{os.path.dirname(__file__)}./info/Nodes.pickle", "wb") as file:
             pickle.dump(nodes, file)
             print("NODE UPDATED")
     except:
@@ -609,8 +611,8 @@ def delete_node(deletion_time, ip, pub_key, sig):
         assert public_key.verify(bytes.fromhex(sig), str(deletion_time).encode())
         for node in nodes:
             if node["ip"] == ip and node["pub_key"] == pub_key:
-                del node
-        with open("info/Nodes.pickle", "wb") as file:
+                nodes.remove(node)
+        with open(f"{os.path.dirname(__file__)}./info/Nodes.pickle", "wb") as file:
             pickle.dump(nodes, file)
     except:
         return "cancel invalid"
@@ -767,11 +769,11 @@ def message_handler(message):
             raise ValueTypeError("version not given as float")
 
     elif protocol == "DELETE":
-        # host, DELETE, public key, sig
-        if len(message) != 4:
+        # host, DELETE, time, public key, sig
+        if len(message) != 5:
             raise UnrecognisedArg("number of args given incorrect")
 
-        if len(message[2]) != 56:
+        if len(message[3]) != 56:
             raise UnrecognisedArg("Public Key is the wrong size")
 
     elif protocol == "BREQ":
