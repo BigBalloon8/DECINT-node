@@ -52,9 +52,9 @@ def AI_job_handler(line):
 def staking_handler(line):
     line = line.split(" ")
     if "STAKE" == line[1]:
-        stake_trans = {"time": float(line[2]), "pub_key": line[2], "stake_amount": float(line[3]), "sig": line[4]}
+        stake_trans = {"time": float(line[2]), "pub_key": line[3], "stake_amount": float(line[4]), "sig": line[5]}
     elif "UNSTAKE" == line[1]:
-        stake_trans = {"time": float(line[2]), "pub_key": line[2], "unstake_amount": float(line[3]), "sig": line[4]}
+        stake_trans = {"time": float(line[2]), "pub_key": line[3], "unstake_amount": float(line[4]), "sig": line[5]}
     public_key = VerifyingKey.from_string(bytes.fromhex(line["sender"]), curve=SECP112r2)
     if not public_key.verify(bytes.fromhex(line[4]), line[2].encode()):
         return
@@ -98,3 +98,6 @@ def read():
                     staking_handler(trans_line)
                 elif "AI_REWARD" in trans_line:
                     AI_job_handler(trans_line)
+
+if __name__ == "__main__":
+    read()

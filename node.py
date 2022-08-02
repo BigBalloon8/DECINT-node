@@ -123,7 +123,7 @@ def send_to_dist(message):
     send(d_node["ip"], message)
 
 
-def rand_act_node(num_nodes=1):
+def rand_act_node(num_nodes=1 ,type_=None):
     """
     returns a list of random active nodes which is x length
     """
@@ -134,6 +134,8 @@ def rand_act_node(num_nodes=1):
     while i != num_nodes:  # turn into for loop
         with open(f"{os.path.dirname(__file__)}./info/Nodes.pickle", "rb") as file:
             all_nodes = pickle.load(file)
+        if type_:
+            all_nodes = [node for node in all_nodes if node["node_type"] == type_]
         me = socket.gethostbyname(socket.gethostname())
         node_index = random.randint(0, len(all_nodes) - 1)
         node = all_nodes[node_index]
@@ -168,7 +170,7 @@ def dist_request_reader(type):
     for line in lines:
         message = line.split(" ")
         print("dist lines: ", line)
-        dist_node = False
+        dist_node = True
         for node_ in dist_nodes:
             if node_["ip"] == message[0]:
                 dist_node = True
@@ -183,6 +185,7 @@ def dist_request_reader(type):
                 lines.remove(" ".join(message))
 
             elif message[1] in trans_protocols:
+                print("added to trans")
                 trans_lines.append(" ".join(message))
 
             elif message[1] in blockchain_protocols:
@@ -415,7 +418,7 @@ def unstake(priv_key, amount):
 
 
 def updator():  # send ask the website for Blockchain as most up to date
-    node = rand_act_node()
+    node = rand_act_node(type_="Blockchain")
     print("---GETTING NODES---")
     time.sleep(0.1)
     send(node["ip"], "GET_NODES")
@@ -458,7 +461,7 @@ def updator():  # send ask the website for Blockchain as most up to date
         else:
             tries += 1
     time.sleep(1)
-    node = rand_act_node()
+    node = rand_act_node(type_="Blockchain")
     time.sleep(0.1)
     send(node["ip"], "BLOCKCHAIN?")
     tries = 0
