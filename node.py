@@ -170,7 +170,7 @@ def dist_request_reader(type):
     for line in lines:
         message = line.split(" ")
         print("dist lines: ", line)
-        dist_node = True
+        dist_node = False
         for node_ in dist_nodes:
             if node_["ip"] == message[0]:
                 dist_node = True
