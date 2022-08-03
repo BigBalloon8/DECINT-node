@@ -23,10 +23,10 @@ def rb(hash, time):
     the random node is calculated using a seed
     the seed used is the hash of the block. this gives all nodes the same node that will be its validator
     """
-    with open(f"{os.path.dirname(__file__)}./info/Nodes.pickle", "rb") as file:
+    with open(f"{os.path.dirname(__file__)}/info/Nodes.pickle", "rb") as file:
         nodes = pickle.load(file)
 
-    with open(f"{os.path.dirname(__file__)}./info/stake_trans.pickle", "rb") as file:
+    with open(f"{os.path.dirname(__file__)}/info/stake_trans.pickle", "rb") as file:
         stake_trans = pickle.load(file)
 
     rb = []#random biased
@@ -69,7 +69,7 @@ def am_i_validator():
     """
     time.sleep(4)
     print("---VALIDATOR STARTED---")
-    with open(f"{os.path.dirname(__file__)}./info/Public_key.txt", "r") as file:
+    with open(f"{os.path.dirname(__file__)}/info/Public_key.txt", "r") as file:
         my_pub = file.read()
     while True:
         chain = blockchain.read_blockchain()

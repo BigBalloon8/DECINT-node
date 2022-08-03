@@ -55,7 +55,7 @@ def staking_handler(line):
         stake_trans = {"time": float(line[2]), "pub_key": line[3], "stake_amount": float(line[4]), "sig": line[5]}
     elif "UNSTAKE" == line[1]:
         stake_trans = {"time": float(line[2]), "pub_key": line[3], "unstake_amount": float(line[4]), "sig": line[5]}
-    public_key = VerifyingKey.from_string(bytes.fromhex(line["sender"]), curve=SECP112r2)
+    public_key = VerifyingKey.from_string(bytes.fromhex(line["pub_key"]), curve=SECP112r2)
     if not public_key.verify(bytes.fromhex(line[4]), line[2].encode()):
         return
     chain = blockchain.read_blockchain()
@@ -71,10 +71,10 @@ def staking_handler(line):
         if not stake_trans["time"] > time.time():
             chain.add_protocol(stake_trans)
             blockchain.write_blockchain(chain)
-            with open(f"{os.path.dirname(__file__)}./info/stake_trans.pickle", "rb") as f:
+            with open(f"{os.path.dirname(__file__)}/info/stake_trans.pickle", "rb") as f:
                 stake_transactions = pickle.load(f)
             stake_transactions.append(stake_trans)
-            with open(f"{os.path.dirname(__file__)}./info/stake_trans.pickle", "wb") as f:
+            with open(f"{os.path.dirname(__file__)}/info/stake_trans.pickle", "wb") as f:
                 pickle.dump(stake_transactions,f)
 
 def AI_reward_handler(line):
@@ -85,7 +85,7 @@ def read():
     #time.sleep(20)
     print("---TRANSACTION READER STARTED---")
     while True:
-        trans_lines = node.dist_request_reader("TRANS")
+        trans_lines = node.dist_request_reader()
         if trans_lines:
             print(f"TRANS LINES: {trans_lines}")
             for trans_line in trans_lines:
@@ -100,4 +100,5 @@ def read():
                     AI_job_handler(trans_line)
 
 if __name__ == "__main__":
+    print("/".join((__file__.split("/"))[:-1]))
     read()

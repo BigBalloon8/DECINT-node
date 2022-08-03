@@ -26,7 +26,7 @@ def run():
     if not norm_port:
         norm_port = "1379"
 
-    with open(f"{os.path.dirname(__file__)}./info/Public_key.txt", "w") as file:
+    with open(f"{os.path.dirname(__file__)}/info/Public_key.txt", "w") as file:
         file.write(pub_key)
 
 
@@ -40,9 +40,9 @@ def run():
 def test_install():
     priv_key, hex_priv = blockchain.priv_key_gen()
     pub_key, hex_pub = blockchain.pub_key_gen(priv_key)
-    with open(f"{os.path.dirname(__file__)}./info/Public_key.txt", "w") as file:
+    with open(f"{os.path.dirname(__file__)}/info/Public_key.txt", "w") as file:
         file.write(hex_pub)
-    with open(f"{os.path.dirname(__file__)}./info/priv_key_testing.txt", "w") as file:
+    with open(f"{os.path.dirname(__file__)}/info/priv_key_testing.txt", "w") as file:
         file.write(hex_priv)
     node.announce(hex_pub,"1379",node.__version__,"Blockchain", hex_priv)
 

@@ -43,7 +43,7 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
         node.get_nodes_no_blockchain()
         click.echo("In order to update your Node please enter a bit of information")
         time.sleep(2)
-        with open(f"{os.path.dirname(__file__)}./info/Public_key.txt", "r") as file:
+        with open(f"{os.path.dirname(__file__)}/info/Public_key.txt", "r") as file:
             pub_key = file.read()
         click.echo("\nLeave Port blank to use default")
         port = click.prompt("Enter Port", default="1379")
@@ -61,7 +61,7 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
         node.get_nodes_no_blockchain()
         click.echo("In order to delete your Node please enter a bit of information")
         time.sleep(2)
-        with open(f"{os.path.dirname(__file__)}./info/Public_key.txt", "r") as file:
+        with open(f"{os.path.dirname(__file__)}/info/Public_key.txt", "r") as file:
             pub_key = file.read()
         priv_key = click.prompt("Private Key", type=str)
         node.delete(pub_key, priv_key)
@@ -73,7 +73,7 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
         node.get_nodes_no_blockchain()
         priv_key = click.prompt("Private Key", type=str)
         click.echo(f"{[priv_key]}")
-        with open(f"{os.path.dirname(__file__)}./info/Public_key.txt", "r") as file:
+        with open(f"{os.path.dirname(__file__)}/info/Public_key.txt", "r") as file:
             pub_key = file.read()
         click.echo("\nCalculating wallet value")
         val = blockchain.get_wallet_val(pub_key)
@@ -95,11 +95,11 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
         node.get_nodes_no_blockchain()
         priv_key = input("Private Key: ")
         click.echo(f"{[type(priv_key)]}")
-        with open(f"{os.path.dirname(__file__)}./info/Public_key.txt", "r") as file:
+        with open(f"{os.path.dirname(__file__)}/info/Public_key.txt", "r") as file:
             pub_key = file.read()
         click.echo("\nCalculating amount your wallet has staked")
         val = 0.0
-        with open(f"{os.path.dirname(__file__)}./info/stake_trans.pickle", "rb") as f:
+        with open(f"{os.path.dirname(__file__)}/info/stake_trans.pickle", "rb") as f:
             stake_transactions = pickle.load(f)
         for stake_trans in stake_transactions:
             if stake_trans["pub_key"] == pub_key and "stake_amount" in stake_trans:
@@ -121,7 +121,7 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
         receive.start()
         node.get_nodes_no_blockchain()
         priv_key = click.prompt("Private Key", type=str)
-        with open(f"{os.path.dirname(__file__)}./info/Public_key.txt", "r") as file:
+        with open(f"{os.path.dirname(__file__)}/info/Public_key.txt", "r") as file:
             pub_key = file.read()
         receiver_key = click.prompt("Receiver Public Key", type=str)
         click.echo("\nCalculating wallet value")
@@ -144,7 +144,7 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
         receive.terminate()
 
     elif d2_install:
-        with open(f"{os.path.dirname(__file__)}./info/Public_key.txt", "w") as file:
+        with open(f"{os.path.dirname(__file__)}/info/Public_key.txt", "w") as file:
             file.write("6efa5bfa8a9bfebaacacf9773f830939d8cb4a2129c1a2aaafaaf549")
 
     elif test_trans:

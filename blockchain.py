@@ -421,28 +421,28 @@ class CustomUnpickler(pickle.Unpickler):
 
 
 def write_blockchain(blockchain):
-    with open(f"{os.path.dirname(__file__)}./info/Blockchain.pickle", "wb") as file:
+    with open(f"{os.path.dirname(__file__)}/info/Blockchain.pickle", "wb") as file:
         pickle.dump(blockchain, file)
 
 
 def read_blockchain():
-    with open(f"{os.path.dirname(__file__)}./info/Blockchain.pickle", "rb") as file:
+    with open(f"{os.path.dirname(__file__)}/info/Blockchain.pickle", "rb") as file:
         return CustomUnpickler(file).load()
 
 
 def read_nodes():
-    with open(f"{os.path.dirname(__file__)}./info/Nodes.pickle", "rb") as file:
+    with open(f"{os.path.dirname(__file__)}/info/Nodes.pickle", "rb") as file:
         return CustomUnpickler(file).load()
 
 
-def validate_blockchain(block_index, ip, time):
+def validate_blockchain(block_index, ip, time_):
     chain = read_blockchain()
-    nodes = pickle.load(f"{os.path.dirname(__file__)}./info/Nodes.pickle")
+    nodes = pickle.load(f"{os.path.dirname(__file__)}/info/Nodes.pickle")
     for node in nodes:
         if node[1] == ip:
             wallet = node[2]
             break
-    chain.block_valid(block_index, wallet, time)
+    chain.block_valid(block_index, wallet, time_)
     write_blockchain(chain)
 
 
@@ -495,12 +495,12 @@ def tester():
             priv, hex_priv = priv_key_gen()
             pub, hex_pub = pub_key_gen(priv)
             amount = random.randint(100, 1000)
-            with open(f"{os.path.dirname(__file__)}./testing_keys.txt", "a") as file:
+            with open(f"{os.path.dirname(__file__)}/testing_keys.txt", "a") as file:
                 file.write(f"{hex_priv} {hex_pub} {amount}\n")
             trans = transaction(main_prv, hex_pub, amount)
             node.send_to_dist(f"TRANS {trans[0]} {trans[1]} {trans[2]} {trans[3]} {trans[4]}")
         else:
-            with open(f"{os.path.dirname(__file__)}./testing_keys.txt", "r") as file:
+            with open(f"{os.path.dirname(__file__)}/testing_keys.txt", "r") as file:
                 test_keys = file.read().split("\n")
             wallet = random.choices(test_keys)
             wallet = wallet.split(" ")

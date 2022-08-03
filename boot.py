@@ -14,7 +14,7 @@ update tensorflow
 update Blockchain and nodes
 """
 def run():
-    open(f"{os.path.dirname(__file__)}./recent_messages.txt", "w").close()#clear recent message file
+    open(f"{os.path.dirname(__file__)}/recent_messages.txt", "w").close()#clear recent message file
     local_ip = socket.gethostbyname(socket.gethostname())
     print(f"MY IP: {local_ip}")
     #os.system("pip3 install --upgrade ecdsa")
