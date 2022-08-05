@@ -154,8 +154,14 @@ def rand_act_node(num_nodes=1 ,type_=None):
 
 
 def dist_request_reader(type_="TRANS"):
-    with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
-        nodes = json.load(file)
+    while True:
+        try:
+            with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
+                nodes = json.load(file)
+            break
+        except json.decoder.JSONDecodeError: #somtimes clashes with other threads running the same function
+            continue
+
     with open(f"{os.path.dirname(__file__)}/dist_messages.txt", "r") as file:
         lines = file.read().splitlines()
     dist_nodes = [node_ for node_ in nodes if node_["node_type"] == "dist"]
