@@ -2,11 +2,12 @@ import node
 import time
 from ecdsa import VerifyingKey, SECP112r2
 import copy
-import pickle
 import blockchain
 import ast
 import requests
 import os
+import traceback
+import json
 def AI_handler():
     pass
 
@@ -73,11 +74,11 @@ def staking_handler(line):
         if not stake_trans["time"] > time.time():
             chain.add_protocol(stake_trans)
             blockchain.write_blockchain(chain)
-            with open(f"{os.path.dirname(__file__)}/info/stake_trans.pickle", "rb") as f:
-                stake_transactions = pickle.load(f)
+            with open(f"{os.path.dirname(__file__)}/info/stake_trans.json", "r") as f:
+                stake_transactions = json.load(f)
             stake_transactions.append(stake_trans)
-            with open(f"{os.path.dirname(__file__)}/info/stake_trans.pickle", "wb") as f:
-                pickle.dump(stake_transactions,f)
+            with open(f"{os.path.dirname(__file__)}/info/stake_trans.json", "w") as f:
+                json.dump(stake_transactions,f)
 
 
 def AI_reward_handler(line):
@@ -102,9 +103,9 @@ def read():
                         staking_handler(trans_line)
                     elif "AI_REWARD" in trans_line:
                         AI_job_handler(trans_line)
-        except Exception as e:
+        except Exception:
             while True:
-                print("ERROR: ", e)
+                traceback.print_exc()
             pass  # unable to find there error but for some reason the for loop break and I don't know why
 
 

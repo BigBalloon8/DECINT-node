@@ -11,6 +11,7 @@ import copy
 import pickle
 import time
 import random
+import json
 
 
 def priv_key_gen():
@@ -392,11 +393,11 @@ class Blockchain:
 
         if not invalid_trans:
             stake_removal = f"LIAR {node_pub} {ip}"
-            with open(f"{os.path.dirname(__file__)}./info/stake_trans.pickle") as file:
-                stake_trans = pickle.load(file)
+            with open(f"{os.path.dirname(__file__)}./info/stake_trans.json", "r") as file:
+                stake_trans = json.load(file)
             stake_trans.append(stake_removal)
-            with open(f"{os.path.dirname(__file__)}./info/stake_trans.pickle") as file:
-                pickle.dump(file)
+            with open(f"{os.path.dirname(__file__)}./info/stake_trans.json", "r") as file:
+                json.dump(file)
 
     def block_valid(self, block_index: int, public_key: str, time_of_validation: float):
         # check if is actual validator
@@ -434,13 +435,14 @@ def read_blockchain():
 
 
 def read_nodes():
-    with open(f"{os.path.dirname(__file__)}/info/Nodes.pickle", "rb") as file:
-        return CustomUnpickler(file).load()
+    with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
+        return json.load()
 
 
 def validate_blockchain(block_index, ip, time_):
     chain = read_blockchain()
-    nodes = pickle.load(f"{os.path.dirname(__file__)}/info/Nodes.pickle")
+    with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
+        nodes = json.load(file)
     for node in nodes:
         if node[1] == ip:
             wallet = node[2]

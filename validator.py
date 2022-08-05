@@ -5,6 +5,7 @@ import math
 #from numba import jit
 import blockchain
 import os
+import json
 
 """
 check amount staked by node from that info
@@ -23,11 +24,11 @@ def rb(hash, time):
     the random node is calculated using a seed
     the seed used is the hash of the block. this gives all nodes the same node that will be its validator
     """
-    with open(f"{os.path.dirname(__file__)}/info/Nodes.pickle", "rb") as file:
-        nodes = pickle.load(file)
+    with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
+        nodes = json.load(file)
 
-    with open(f"{os.path.dirname(__file__)}/info/stake_trans.pickle", "rb") as file:
-        stake_trans = pickle.load(file)
+    with open(f"{os.path.dirname(__file__)}/info/stake_trans.json", "r") as file:
+        stake_trans = json.load(file)
 
     rb = []#random biased
     for node in nodes:
