@@ -159,6 +159,8 @@ def dist_request_reader(type_="TRANS"):
     with open(f"{os.path.dirname(__file__)}/dist_messages.txt", "r") as file:
         lines = file.read().splitlines()
     dist_nodes = [node_ for node_ in nodes if node_["node_type"] == "dist"]
+    if lines:
+        print("type_ == ", type_)
 
     trans_protocols = ["TRANS", "STAKE", "UNSTAKE", "AI_JOB_ANNOUNCE"]
     blockchain_protocols = ["VALID", "TRANS_INVALID"]

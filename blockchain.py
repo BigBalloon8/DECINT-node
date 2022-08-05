@@ -85,6 +85,9 @@ class Blockchain:
     def __call__(self):
         return self.chain
 
+    def __getitem__(self, item):
+        return self.chain[item]
+
     def get_block(self, block_index: int):
         try:
             return self.chain[block_index]

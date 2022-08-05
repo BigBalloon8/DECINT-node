@@ -23,7 +23,7 @@ def trans_handler(line):
     chain = blockchain.read_blockchain()
     if trans in chain[-1] or trans in chain[-2]:
         return
-    if trans["amount"] > 0.0:
+    if not trans["amount"] > 0.0:
         return
 
     if float(trans["time"]) > (time.time() - 20.0):  # was announced in the last 30 seconds
@@ -55,17 +55,19 @@ def staking_handler(line):
         stake_trans = {"time": float(line[2]), "pub_key": line[3], "stake_amount": float(line[4]), "sig": line[5]}
     elif "UNSTAKE" == line[1]:
         stake_trans = {"time": float(line[2]), "pub_key": line[3], "unstake_amount": float(line[4]), "sig": line[5]}
-    public_key = VerifyingKey.from_string(bytes.fromhex(line["pub_key"]), curve=SECP112r2)
-    if not public_key.verify(bytes.fromhex(line[4]), line[2].encode()):
+    #print(bytes.fromhex(stake_trans["pub_key"]))
+    public_key = VerifyingKey.from_string(bytes.fromhex(stake_trans["pub_key"]), curve=SECP112r2)
+    if not public_key.verify(bytes.fromhex(stake_trans["sig"]), str(stake_trans["time"]).encode()):
+        print("sig invalid")
         return
     chain = blockchain.read_blockchain()
     if stake_trans in chain[-1] or stake_trans in chain[-2]:
         return
     try:
-        if stake_trans["stake_amount"] > 0.0:
+        if not stake_trans["stake_amount"] > 0.0:
             return
     except KeyError:
-        if stake_trans["unstake_amount"] > 0.0:
+        if not stake_trans["unstake_amount"] > 0.0:
             return
     if stake_trans["time"] > (time.time()-20.0):
         if not stake_trans["time"] > time.time():
@@ -77,6 +79,7 @@ def staking_handler(line):
             with open(f"{os.path.dirname(__file__)}/info/stake_trans.pickle", "wb") as f:
                 pickle.dump(stake_transactions,f)
 
+
 def AI_reward_handler(line):
     pass
 
@@ -85,19 +88,26 @@ def read():
     #time.sleep(20)
     print("---TRANSACTION READER STARTED---")
     while True:
-        trans_lines = node.dist_request_reader()
-        if trans_lines:
-            print(f"TRANS LINES: {trans_lines}")
-            for trans_line in trans_lines:
-                if "TRANS" in trans_line:
-                    trans_handler(trans_line)
-                    #  TODO add trans error handler
-                elif "AI_JOB" in trans_line:
-                    AI_job_handler(trans_line)
-                elif "STAKE" in trans_line or "UNSTAKE" in trans_line:
-                    staking_handler(trans_line)
-                elif "AI_REWARD" in trans_line:
-                    AI_job_handler(trans_line)
+        try:
+            trans_lines = node.dist_request_reader()
+            if trans_lines:
+                print(f"TRANS LINES: {trans_lines}")
+                for trans_line in trans_lines:
+                    if "TRANS" in trans_line:
+                        trans_handler(trans_line)
+                        #  TODO add trans error handler
+                    elif "AI_JOB" in trans_line:
+                        AI_job_handler(trans_line)
+                    elif "STAKE" in trans_line or "UNSTAKE" in trans_line:
+                        staking_handler(trans_line)
+                    elif "AI_REWARD" in trans_line:
+                        AI_job_handler(trans_line)
+        except Exception as e:
+            while True:
+                print("ERROR: ", e)
+            pass  # unable to find there error but for some reason the for loop break and I don't know why
+
+
 
 if __name__ == "__main__":
     print("/".join((__file__.split("/"))[:-1]))

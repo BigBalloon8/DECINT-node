@@ -146,6 +146,14 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
     elif d2_install:
         with open(f"{os.path.dirname(__file__)}/info/Public_key.txt", "w") as file:
             file.write("6efa5bfa8a9bfebaacacf9773f830939d8cb4a2129c1a2aaafaaf549")
+        with open(f"{os.path.dirname(__file__)}/boot.py", "r") as file:
+            boot_py = file.read().splitlines()
+        for i in range(len(boot_py)):
+            if ".result()" in boot_py[i]:
+                boot_py[i] = boot_py[i].replace(".result()", " ")
+        with open(f"{os.path.dirname(__file__)}/boot.py", "w") as file:
+            file.write("\n".join(boot_py))
+
 
     elif test_trans:
         blockchain.tester()
