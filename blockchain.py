@@ -61,11 +61,15 @@ class Blockchain:
                       [["c484eb3cfd69ad6c289dcc1e1b671929cdb7b6a63f75a4d21e8d1e126ad8433d"],
                        {"time": 901.0, "sender": "0",
                         "receiver": "6efa5bfa8a9bfebaacacf9773f830939d8cb4a2129c1a2aaafaaf549", "amount": 2 ** 23,
-                        "sig": "0"}, ["a74a0cfbf0dbcb5a283b94e41c09716de1529201ff541e7faaaeef3a638cbc86", 901.0], [0],
-                       [True, 902.0, "0"]],
-                      [["a74a0cfbf0dbcb5a283b94e41c09716de1529201ff541e7faaaeef3a638cbc86"],
-                       {"time": 1802.0, "pub_key":"6efa5bfa8a9bfebaacacf9773f830939d8cb4a2129c1a2aaafaaf549", "stake_amount" : 800.0,
-                        "sig": "3091bd6627300ae1790449b90d3b093f6f364553d9e56f422b64138f"}]
+                        "sig": "0"},
+                       {"time": 902.0, "pub_key":"6efa5bfa8a9bfebaacacf9773f830939d8cb4a2129c1a2aaafaaf549", "stake_amount" : 1.0,
+                        "sig": "3091bd6627300ae1790449b90d3b093f6f364553d9e56f422b64138f"},
+                       ["6db4f412053b48a7f2579ed59d28a7d623ef6ebc9d5023b17cb331b8b92d5be8", 902.0], [0],
+                       [True, 903.0, "0"]],
+                      [["6db4f412053b48a7f2579ed59d28a7d623ef6ebc9d5023b17cb331b8b92d5be8"],
+                       {"time": 1802.0, "pub_key":"6efa5bfa8a9bfebaacacf9773f830939d8cb4a2129c1a2aaafaaf549", "stake_amount" : 1.0,
+                        "sig": "225a69aee9a4a360ba496c11b3e030321371246cfccf86e9ed7c8056"}
+                       ]
                       ]
 
     def __repr__(self):
@@ -100,7 +104,7 @@ class Blockchain:
 
     def block_sort(self, block):
         sort = copy.copy(block)
-        block_head = sort.pop(0)
+        block_head = [sort.pop(0)]
         return block_head + quick_sort_block(sort)
 
     def all_transactions(self, address: str):
@@ -178,15 +182,18 @@ class Blockchain:
                             value -= float(trans["amount"])
                             continue
                         if trans["receiver"] == wallet_address:
-                            if block[-1][0]:  # dont add trans amount to value if block not valid
-                                value += (float(trans["amount"]) * 0.99)
-                                continue
+                            if isinstance(block[-1], list):
+                                if block[-1][0]:  # don't add trans amount to value if block not valid
+                                    value += (float(trans["amount"]) * 0.99)
+                                    continue
                     elif "stake_amount" in trans and trans["pub_key"] == wallet_address:
                         value -= trans["stake_amount"]
                         continue
                     elif "unstake_amount" in trans and trans["pub_key"] == wallet_address:
-                        if block[-1][0]:
-                            value += trans["unstake_amount"]
+                        if isinstance(block[-1], list):
+                            if block[-1][0]:
+                                value += trans["unstake_amount"]
+                                continue
                     elif "AI_reward" in trans and wallet_address in trans["pub_keys"]:
                         value += (trans["AI_reward"] * (
                                     trans["AI_reward"][trans["pub_keys"].index(wallet_address)] / sum(
@@ -228,7 +235,7 @@ class Blockchain:
                     if not self.chain[-2][-1][0]:
                         self.chain[-2].insert(-3, trans)
 
-                        temp_block = copy.copy(self.chain)
+                        temp_block = copy.copy(self.chain[-2])
 
                         temp_block.pop()
                         temp_block.pop()
@@ -254,8 +261,8 @@ class Blockchain:
                         trans_fees += b_trans["amount"] * 0.01
 
             block = copy.copy(self.chain[-1])
-            self.chain[-1] = self.block_sort(self.chain[-1])
-            #  self.chain[-1] = block.insert(0, self.chain[-1][0]) this was coded a while ago there may be a reason but idk
+            self.chain[-1] = self.block_sort(block)
+            #self.chain[-1] = block.insert(0, self.chain[-1][0]) #  this was coded a while ago there may be a reason but idk
             self.chain[-1].append([block_hash, b_time])
             self.chain[-1].append([trans_fees])
             self.chain[-1].append([False, b_time])
@@ -440,16 +447,16 @@ def read_blockchain():
 
 def read_nodes():
     with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
-        return json.load()
+        return json.load(file)
 
 
 def validate_blockchain(block_index, ip, time_):
     chain = read_blockchain()
     with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
         nodes = json.load(file)
-    for node in nodes:
-        if node[1] == ip:
-            wallet = node[2]
+    for node_ in nodes:
+        if node_[1] == ip:
+            wallet = node_[2]
             break
     chain.block_valid(block_index, wallet, time_)
     write_blockchain(chain)
@@ -524,6 +531,8 @@ if __name__ == "__main__":
     CHAIN = Blockchain()
     # print("hash: ", CHAIN.hash_block(1))
     write_blockchain(CHAIN)
+    #print(CHAIN)
+    #print(CHAIN.hash_block(CHAIN[-1]))
     # print(read_blockchain().send_blockchain())
 
     pass

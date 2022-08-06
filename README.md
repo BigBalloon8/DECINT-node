@@ -11,8 +11,8 @@ The miners are rewarded via the crypto made through transaction fees thus the pr
 ## Install the Node
 
 ```bash
-git clone https://github.com/mayfieldmobster/DECI.git
-cd Blockchain/
+git clone https://github.com/mayfieldmobster/DECINT-node.git
+cd DECINT-node
 pip install . --user
 DECINT --help
 ```
