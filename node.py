@@ -447,7 +447,7 @@ def updator():  # send ask the website for Blockchain as most up to date
     while True:
         if tries == 10:
             quit()
-        time.sleep(5)
+        time.sleep(2)
         lines = request_reader("NREQ")
         if lines:
             print(f"NRQ LINE: {lines[0]}")
@@ -471,7 +471,7 @@ def updator():  # send ask the website for Blockchain as most up to date
         if tries == 10:
             get_blockchain_no_nodes()
             return
-        time.sleep(5)
+        time.sleep(2)
         lines = request_reader("BREQ")
         if lines:
             line = lines[0].split(" ")
@@ -490,7 +490,7 @@ def updator():  # send ask the website for Blockchain as most up to date
         if tries == 10:
             get_blockchain_no_nodes()
             return
-        time.sleep(5)
+        time.sleep(2)
         lines = request_reader("BREQ")
         if lines:
             line = lines[0].split(" ")
@@ -502,7 +502,7 @@ def updator():  # send ask the website for Blockchain as most up to date
             tries += 1
 
     chain = blockchain.read_blockchain()
-    check =chain.update(new_chain_1, new_chain_2)
+    check = chain.update(new_chain_1, new_chain_2)
     if check:
         blockchain.write_blockchain(chain)
     else:
@@ -519,7 +519,7 @@ def get_blockchain_no_nodes():
         if tries == 10:
             get_blockchain_no_nodes()
             return
-        time.sleep(5)
+        time.sleep(2)
         lines = request_reader("BREQ")
         if lines:
             line = lines[0].split(" ")
@@ -529,7 +529,7 @@ def get_blockchain_no_nodes():
                 break
         else:
             tries += 1
-
+    time.sleep(1)
     node = rand_act_node()
     print(node)
     send(node["ip"], "BLOCKCHAIN?")
@@ -538,7 +538,7 @@ def get_blockchain_no_nodes():
         if tries == 10:
             get_blockchain_no_nodes()
             return
-        time.sleep(5)
+        time.sleep(2)
         lines = request_reader("BREQ")
         if lines:
             line = lines[0].split(" ")
@@ -550,8 +550,11 @@ def get_blockchain_no_nodes():
             tries += 1
 
     chain = blockchain.read_blockchain()
-    chain.update(new_chain_1, new_chain_2)
-    check = blockchain.write_blockchain(chain)
+    check = chain.update(new_chain_1, new_chain_2)
+    if check:
+        blockchain.write_blockchain(chain)
+    else:
+        get_blockchain_no_nodes()
 
 def get_nodes_no_blockchain():
     print("---GETTING NODES---")
@@ -560,7 +563,7 @@ def get_nodes_no_blockchain():
     send(node["ip"], "GET_NODES")
     tries = 0
     while tries < 10:
-        time.sleep(5)
+        time.sleep(2)
         lines = request_reader("NREQ")
         if lines:
             for line in lines:

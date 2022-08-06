@@ -62,7 +62,10 @@ class Blockchain:
                        {"time": 901.0, "sender": "0",
                         "receiver": "6efa5bfa8a9bfebaacacf9773f830939d8cb4a2129c1a2aaafaaf549", "amount": 2 ** 23,
                         "sig": "0"}, ["a74a0cfbf0dbcb5a283b94e41c09716de1529201ff541e7faaaeef3a638cbc86", 901.0], [0],
-                       [True, 902.0, "0"]]
+                       [True, 902.0, "0"]],
+                      [["a74a0cfbf0dbcb5a283b94e41c09716de1529201ff541e7faaaeef3a638cbc86"],
+                       {"time": 1802.0, "pub_key":"6efa5bfa8a9bfebaacacf9773f830939d8cb4a2129c1a2aaafaaf549", "stake_amount" : 800.0,
+                        "sig": "3091bd6627300ae1790449b90d3b093f6f364553d9e56f422b64138f"}]
                       ]
 
     def __repr__(self):
@@ -139,20 +142,21 @@ class Blockchain:
                 index += 1
                 continue
 
+        index = 0
         for block in new_chain2[::-1]:  # removing invalid blocks and comparing with other
             if isinstance(block[-1], list):
                 if not block[-1][0]:
                     index += 1
                     continue
                 else:
-                    shortened_new_chain2 = new_chain1[:-index]
+                    shortened_new_chain2 = new_chain2[:-index]
                     break
             else:
                 index += 1
                 continue
-
         hash1 = hashlib.sha3_512(str(shortened_new_chain1).encode())
         hash2 = hashlib.sha3_512(str(shortened_new_chain2).encode())
+        print("\n",hash1.hexdigest(), hash2.hexdigest())
         if hash1.hexdigest() == hash2.hexdigest():
             new_chain = new_chain1
         else:
@@ -521,4 +525,5 @@ if __name__ == "__main__":
     # print("hash: ", CHAIN.hash_block(1))
     write_blockchain(CHAIN)
     # print(read_blockchain().send_blockchain())
+
     pass
