@@ -198,10 +198,10 @@ class Blockchain:
                         value += (trans["AI_reward"] * (
                                     trans["AI_reward"][trans["pub_keys"].index(wallet_address)] / sum(
                                 trans["AI_reward"])))
-
-            if block[-1][0]:
-                if block[-1][2] == wallet_address:
-                    value += block[-2][0] * 0.5
+            if isinstance(block[-1], list):
+                if block[-1][0]:
+                    if block[-1][2] == wallet_address:
+                        value += block[-2][0] * 0.5
 
         return value
 
@@ -413,6 +413,7 @@ class Blockchain:
     def block_valid(self, block_index: int, public_key: str, time_of_validation: float):
         # check if is actual validator
         nodes = []
+        stake_trans = []
         for block_hash in self.chain[block_index][-3]:
             val_node = validator.rb(block_hash, time_of_validation)
             nodes.append(val_node)
@@ -422,6 +423,18 @@ class Blockchain:
                 if ran_node["pub_key"] == public_key:
                     if not self.chain[-1][0]:
                         self.chain[block_index][-1] = [True, time_of_validation, public_key]
+
+            for trans in self.chain[block_index]:
+                if isinstance(trans, dict):
+                    if "stake_amount" in trans or "unstake_amount" in trans:
+                        stake_trans.append(trans)
+            with open(f"{os.path.dirname(__file__)}/info/stake_trans.json", "r") as f:
+                stake_transactions = json.load(f)
+            stake_transactions = stake_transactions + stake_trans
+            with open(f"{os.path.dirname(__file__)}/info/stake_trans.json", "w") as f:
+                json.dump(stake_transactions, f)
+
+
 
     def send_blockchain(self):
         return str(self.chain).replace(" ", "")

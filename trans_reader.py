@@ -74,11 +74,7 @@ def staking_handler(line):
         if not stake_trans["time"] > time.time():
             chain.add_protocol(stake_trans)
             blockchain.write_blockchain(chain)
-            with open(f"{os.path.dirname(__file__)}/info/stake_trans.json", "r") as f:
-                stake_transactions = json.load(f)
-            stake_transactions.append(stake_trans)
-            with open(f"{os.path.dirname(__file__)}/info/stake_trans.json", "w") as f:
-                json.dump(stake_transactions,f)
+
 
 
 def AI_reward_handler(line):

@@ -30,7 +30,7 @@ def rb(hash, time):
     with open(f"{os.path.dirname(__file__)}/info/stake_trans.json", "r") as file:
         stake_trans = json.load(file)
 
-    rb = []#random biased
+    rb = []  # random biased
     for node in nodes:
         public = node["pub_key"]
         ip = node["ip"]
