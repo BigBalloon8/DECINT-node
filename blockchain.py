@@ -379,19 +379,16 @@ class Blockchain:
         trans_no_sig = " ".join(trans_no_sig)
         public_key = VerifyingKey.from_string(bytes.formathex(trans["sender"]), curve=SECP112r2)
 
-        try:
-            assert public_key.verify(bytes.fromhex(trans["sig"]), trans_no_sig.encode())
-
-            if self.wallet_value(trans["sender"], block_index=block_index) < float(trans["amount"]):
-                raise ValueError("sender does not have ")
-
-            invalid_trans = False
-
-        except:
+        if public_key.verify(bytes.fromhex(trans["sig"]), trans_no_sig.encode()):
+            if self.wallet_value(trans["sender"], block_index=block_index) <= float(trans["amount"]):
+                invalid_trans = False
+            else:
+                invalid_trans = True
+        else:
             invalid_trans = True
 
         if invalid_trans:
-            del self.chain[block_index][trans_index]
+            self.chain[block_index].pop(trans_index)
             pre_hashed_blocks = copy.copy(self.chain)
 
             for i in range(len(self.chain) - block_index):  # update hashes
@@ -399,15 +396,15 @@ class Blockchain:
                 pre_hashed_blocks[block_index + i].pop()
                 pre_hashed_blocks[block_index + i].pop()
                 block_hash = self.hash_block(pre_hashed_blocks[block_index + i])
-                self.chain[block_index + i][-3][0].append(block_hash)
+                self.chain[block_index + i][-3][0] = block_hash
                 self.chain[block_index + i + 1][0] = [block_hash]
 
-        if not invalid_trans:
+        if not invalid_trans: #TODO update liar system
             stake_removal = f"LIAR {node_pub} {ip}"
             with open(f"{os.path.dirname(__file__)}./info/stake_trans.json", "r") as file:
                 stake_trans = json.load(file)
             stake_trans.append(stake_removal)
-            with open(f"{os.path.dirname(__file__)}./info/stake_trans.json", "r") as file:
+            with open(f"{os.path.dirname(__file__)}./info/stake_trans.json", "w") as file:
                 json.dump(file)
 
     def block_valid(self, block_index: int, public_key: str, time_of_validation: float):

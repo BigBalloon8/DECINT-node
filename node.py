@@ -439,6 +439,7 @@ def unstake(priv_key, amount):
 
 
 def updator():  # send ask the website for Blockchain as most up to date
+    # TODO add stake updator
     node = rand_act_node(type_="Blockchain")
     print("---GETTING NODES---")
     time.sleep(0.1)
