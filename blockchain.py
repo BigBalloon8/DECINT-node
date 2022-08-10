@@ -62,12 +62,14 @@ class Blockchain:
                        {"time": 901.0, "sender": "0",
                         "receiver": "6efa5bfa8a9bfebaacacf9773f830939d8cb4a2129c1a2aaafaaf549", "amount": 2 ** 23,
                         "sig": "0"},
-                       {"time": 902.0, "pub_key":"6efa5bfa8a9bfebaacacf9773f830939d8cb4a2129c1a2aaafaaf549", "stake_amount" : 1.0,
+                       {"time": 902.0, "pub_key": "6efa5bfa8a9bfebaacacf9773f830939d8cb4a2129c1a2aaafaaf549",
+                        "stake_amount": 1.0,
                         "sig": "3091bd6627300ae1790449b90d3b093f6f364553d9e56f422b64138f"},
                        ["6db4f412053b48a7f2579ed59d28a7d623ef6ebc9d5023b17cb331b8b92d5be8", 902.0], [0],
                        [True, 903.0, "0"]],
                       [["6db4f412053b48a7f2579ed59d28a7d623ef6ebc9d5023b17cb331b8b92d5be8"],
-                       {"time": 1802.0, "pub_key":"6efa5bfa8a9bfebaacacf9773f830939d8cb4a2129c1a2aaafaaf549", "stake_amount" : 1.0,
+                       {"time": 1802.0, "pub_key": "6efa5bfa8a9bfebaacacf9773f830939d8cb4a2129c1a2aaafaaf549",
+                        "stake_amount": 1.0,
                         "sig": "225a69aee9a4a360ba496c11b3e030321371246cfccf86e9ed7c8056"}
                        ]
                       ]
@@ -78,8 +80,8 @@ class Blockchain:
     def print_block(self, block_index):
         return str(self.chain[block_index]).replace("]", "]\n")
 
-    def __len__(self, block=-1):
-        if block == -1:
+    def __len__(self, block=False):
+        if not block:
             return len(self.chain)
         elif block >= 0:
             return len(self.chain[block])
@@ -160,7 +162,7 @@ class Blockchain:
                 continue
         hash1 = hashlib.sha3_512(str(shortened_new_chain1).encode())
         hash2 = hashlib.sha3_512(str(shortened_new_chain2).encode())
-        print("\n",hash1.hexdigest(), hash2.hexdigest())
+        print("\n", hash1.hexdigest(), hash2.hexdigest())
         if hash1.hexdigest() == hash2.hexdigest():
             new_chain = new_chain1
         else:
@@ -196,8 +198,8 @@ class Blockchain:
                                 continue
                     elif "AI_reward" in trans and wallet_address in trans["pub_keys"]:
                         value += (trans["AI_reward"] * (
-                                    trans["AI_reward"][trans["pub_keys"].index(wallet_address)] / sum(
-                                trans["AI_reward"])))
+                                trans["AI_reward"][trans["pub_keys"].index(wallet_address)] / sum(
+                            trans["AI_reward"])))
             if isinstance(block[-1], list):
                 if block[-1][0]:
                     if block[-1][2] == wallet_address:
@@ -221,6 +223,11 @@ class Blockchain:
                                 value += trans["stake_amount"]
                         elif "unstake_amount" in trans:
                             value -= trans["stake_amount"]
+
+                if isinstance(trans, str):
+                    if wallet_address in trans:
+                        if "LIAR" in trans:
+                            return 0.0
 
         return value
 
@@ -262,7 +269,7 @@ class Blockchain:
 
             block = copy.copy(self.chain[-1])
             self.chain[-1] = self.block_sort(block)
-            #self.chain[-1] = block.insert(0, self.chain[-1][0]) #  this was coded a while ago there may be a reason but idk
+            # self.chain[-1] = block.insert(0, self.chain[-1][0]) #  this was coded a while ago there may be a reason but idk
             self.chain[-1].append([block_hash, b_time])
             self.chain[-1].append([trans_fees])
             self.chain[-1].append([False, b_time])
@@ -318,16 +325,16 @@ class Blockchain:
             self.chain.append(new_block)
             print("--NEW BLOCK--")
 
-    def validate(self, block_index: int, time_of_validation: float = 0.0, validating: bool = True):
+    def validate(self, block_index: int, time_of_validation: float, validating: bool = True):
         trans_index = 0
         for trans in self.chain[block_index]:
             if isinstance(trans, dict):
                 if "amount" in trans:
-                    if self.wallet_value(trans["sender"], block_index=block_index) < float(trans["amount"]):
+                    if self.wallet_value(trans["sender"], block_index=block_index) < trans["amount"]:
                         if validating:
                             message = f"TRANS_INVALID {block_index} {trans_index}"
                             node.send_to_dist(message)
-                            self.invalid_trans(block_index, trans_index)
+                            # self.invalid_trans(block_index, trans_index)
 
                         if not validating:
                             return False
@@ -337,7 +344,7 @@ class Blockchain:
                         if validating:
                             message = f"TRANS_INVALID {block_index} {trans_index}"
                             node.send_to_dist(message)
-                            self.invalid_trans(block_index, trans_index)
+                            # self.invalid_trans(block_index, trans_index)
 
                         if not validating:
                             return False
@@ -347,7 +354,7 @@ class Blockchain:
                         if validating:
                             message = f"TRANS_INVALID {block_index} {trans_index}"
                             node.send_to_dist(message)
-                            self.invalid_trans(block_index, trans_index)
+                            # self.invalid_trans(block_index, trans_index)
 
                         if not validating:
                             return False
@@ -361,33 +368,33 @@ class Blockchain:
             return True
 
     def invalid_trans(self, block_index: int, trans_index: int, ip: str):
-        nodes = read_nodes()
+        with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
+            nodes = json.load(file)
         node_pub = None
-        for nod in nodes:
-            if nod["ip"] == ip:
-                node_pub = nod["pub_key"]
+        validators = []
+        for bhash in self.chain[block_index][-3]:
+            if isinstance(bhash, str):
+                #TODO figure out how to include validation time to ony return one node
+                validators + validator.rb(block_hash=bhash, block_time=self.chain[-3][1], invalid=True)
+        for node_ in nodes:
+            if node_["ip"] == ip:
+                if node_ in validators:
+                    node_pub = node_["pub_key"]
 
         if not node_pub:
             return
 
         block_index = int(block_index)
         trans_index = int(trans_index)
-
+        if self.chain[block_index][0]:  # TODO must complete invalid trans before validating
+            return
         trans = self.chain[block_index][trans_index]
-        trans_no_sig = copy.copy(trans)
-        trans_no_sig.pop("sig")
-        trans_no_sig = " ".join(trans_no_sig)
-        public_key = VerifyingKey.from_string(bytes.formathex(trans["sender"]), curve=SECP112r2)
-
-        if public_key.verify(bytes.fromhex(trans["sig"]), trans_no_sig.encode()):
-            if self.wallet_value(trans["sender"], block_index=block_index) <= float(trans["amount"]):
-                invalid_trans = False
-            else:
-                invalid_trans = True
+        if self.wallet_value(trans["sender"], block_index=block_index) < float(trans["amount"]):
+            invalid_trans_ = False
         else:
-            invalid_trans = True
+            invalid_trans_ = True
 
-        if invalid_trans:
+        if invalid_trans_:
             self.chain[block_index].pop(trans_index)
             pre_hashed_blocks = copy.copy(self.chain)
 
@@ -396,10 +403,10 @@ class Blockchain:
                 pre_hashed_blocks[block_index + i].pop()
                 pre_hashed_blocks[block_index + i].pop()
                 block_hash = self.hash_block(pre_hashed_blocks[block_index + i])
-                self.chain[block_index + i][-3][0] = block_hash
+                self.chain[block_index + i][-3][0].append(block_hash)
                 self.chain[block_index + i + 1][0] = [block_hash]
 
-        if not invalid_trans: #TODO update liar system
+        if not invalid_trans_:  # TODO update liar system
             stake_removal = f"LIAR {node_pub} {ip}"
             with open(f"{os.path.dirname(__file__)}./info/stake_trans.json", "r") as file:
                 stake_trans = json.load(file)
@@ -412,25 +419,33 @@ class Blockchain:
         nodes = []
         stake_trans = []
         for block_hash in self.chain[block_index][-3]:
-            val_node = validator.rb(block_hash, time_of_validation)
-            nodes.append(val_node)
-        correct_validation = self.validate(block_index, validating=False)
-        if correct_validation:
-            for ran_node in nodes:
-                if ran_node["pub_key"] == public_key:
+            if isinstance(block_hash, str):
+                val_node = validator.rb(block_hash, self.chain[block_index][-3][1], time_of_validation)
+                nodes.append(val_node)
+        for ran_node in nodes:
+            if ran_node["pub_key"] == public_key:
+                correct_validation = self.validate(block_index, validating=False)
+                if correct_validation:
                     if not self.chain[-1][0]:
                         self.chain[block_index][-1] = [True, time_of_validation, public_key]
 
-            for trans in self.chain[block_index]:
-                if isinstance(trans, dict):
-                    if "stake_amount" in trans or "unstake_amount" in trans:
-                        stake_trans.append(trans)
-            with open(f"{os.path.dirname(__file__)}/info/stake_trans.json", "r") as f:
-                stake_transactions = json.load(f)
-            stake_transactions = stake_transactions + stake_trans
-            with open(f"{os.path.dirname(__file__)}/info/stake_trans.json", "w") as f:
-                json.dump(stake_transactions, f)
+                        for trans in self.chain[block_index]:
+                            if isinstance(trans, dict):
+                                if "stake_amount" in trans or "unstake_amount" in trans:
+                                    stake_trans.append(trans)
+                        with open(f"{os.path.dirname(__file__)}/info/stake_trans.json", "r") as f:
+                            stake_transactions = json.load(f)
+                        stake_transactions = stake_transactions + stake_trans
+                        with open(f"{os.path.dirname(__file__)}/info/stake_trans.json", "w") as f:
+                            json.dump(stake_transactions, f)
 
+                else:
+                    stake_removal = f"LIAR {ran_node['pub_key']} {ran_node['ip']}"
+                    with open(f"{os.path.dirname(__file__)}./info/stake_trans.json", "r") as file:
+                        stake_trans = json.load(file)
+                    stake_trans.append(stake_removal)
+                    with open(f"{os.path.dirname(__file__)}./info/stake_trans.json", "w") as file:
+                        json.dump(file)
 
 
     def send_blockchain(self):
@@ -511,7 +526,6 @@ def key_tester():
 
 
 def tester():
-    
     for _ in range(1000):
         main_prv = os.environ["PUB_KEY"]
         main_pub = os.environ["PUB_KEY"]
@@ -541,8 +555,8 @@ if __name__ == "__main__":
     CHAIN = Blockchain()
     # print("hash: ", CHAIN.hash_block(1))
     write_blockchain(CHAIN)
-    #print(CHAIN)
-    #print(CHAIN.hash_block(CHAIN[-1]))
+    # print(CHAIN)
+    # print(CHAIN.hash_block(CHAIN[-1]))
     # print(read_blockchain().send_blockchain())
 
     pass
