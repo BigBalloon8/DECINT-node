@@ -76,21 +76,20 @@ async def async_send(host, message, port=1379, send_all=False):
         client.send(message.encode("utf-8"))
         print(f"Message to {host} {message}\n")
         return
-    except Exception as e:
+    except ConnectionError:
         if not send_all:
-            if isinstance(e, ConnectionRefusedError):
-                try:
-                    with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
-                        nodes = json.load(file)
-                    for node in nodes:
-                        if node[1] == host:
-                            if not int(node["port"]) == 1379:
-                                client.connect((host, int(node["port"])))
-                                client.send(message.encode("utf-8"))
-                                print(f"Message to {host} {message}\n")
-                                return
-                except Exception as e:
-                    return "node offline"
+            try:
+                with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
+                    nodes = json.load(file)
+                for node in nodes:
+                    if node[1] == host:
+                        if not int(node["port"]) == 1379:
+                            client.connect((host, int(node["port"])))
+                            client.send(message.encode("utf-8"))
+                            print(f"Message to {host} {message}\n")
+                            return
+            except ConnectionError:
+                return "node offline"
 
 
 # check if nodes online
@@ -123,7 +122,7 @@ def send_to_dist(message):
     send(d_node["ip"], message)
 
 
-def rand_act_node(num_nodes=1 ,type_=None):
+def rand_act_node(num_nodes=1, type_=None):
     """
     returns a list of random active nodes which is x length
     """
@@ -159,7 +158,7 @@ def dist_request_reader(type_="TRANS"):
             with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
                 nodes = json.load(file)
             break
-        except json.decoder.JSONDecodeError: #somtimes clashes with other threads running the same function
+        except json.decoder.JSONDecodeError:  # somtimes clashes with other threads running the same function
             continue
 
     with open(f"{os.path.dirname(__file__)}/dist_messages.txt", "r") as file:
@@ -177,7 +176,7 @@ def dist_request_reader(type_="TRANS"):
 
     trans_messages = []
     blockchain_messages = []
-    #left_over_messages = []
+    # left_over_messages = []
 
     for line in lines:
         message = line.split(" ")
@@ -458,7 +457,7 @@ def updator():  # send ask the website for Blockchain as most up to date
             if line[0] == node["ip"]:
                 with open(f"{os.path.dirname(__file__)}/info/nodes.json", "w") as file:
                     json.dump(nodes, file)
-                #print("---NODES RECEIVED---")
+                # print("---NODES RECEIVED---")
                 print("NODES UPDATED SUCCESSFULLY")
                 break
         else:
@@ -557,6 +556,7 @@ def get_blockchain_no_nodes():
     else:
         get_blockchain_no_nodes()
 
+
 def get_nodes_no_blockchain():
     print("---GETTING NODES---")
     node = rand_act_node()
@@ -585,8 +585,8 @@ def get_nodes_no_blockchain():
 
 def send_node(host):
     with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
-        Nodes = json.load(file)
-    str_node = str(Nodes)
+        nodes = json.load(file)
+    str_node = str(nodes)
     str_node = str_node.replace(" ", "")
     send(host, "NREQ " + str_node)
 
@@ -595,8 +595,7 @@ def new_node(initiation_time, ip, pub_key, port, node_version, node_type, sig):
     with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
         nodes = json.load(file)
     public_key = VerifyingKey.from_string(bytes.fromhex(pub_key), curve=SECP112r2)
-    try:
-        assert public_key.verify(bytes.fromhex(sig), str(initiation_time).encode())
+    if public_key.verify(bytes.fromhex(sig), str(initiation_time).encode()):
         new_node = {"time": initiation_time, "ip": ip, "pub_key": pub_key, "port": port, "version": node_version,
                     "node_type": node_type}
         for node in nodes:
@@ -608,8 +607,7 @@ def new_node(initiation_time, ip, pub_key, port, node_version, node_type, sig):
         with open(f"{os.path.dirname(__file__)}/info/nodes.json", "w") as file:
             json.dump(nodes, file)
         print("---NODE ADDED---")
-    except Exception as e:
-        print(e)
+    else:
         return "node invalid"
 
 
@@ -617,8 +615,7 @@ def update_node(ip, update_time, old_key, new_key, port, node_version, sig):
     with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
         nodes = json.load(file)
     public_key = VerifyingKey.from_string(bytes.fromhex(old_key), curve=SECP112r2)
-    try:
-        assert public_key.verify(bytes.fromhex(sig), str(update_time).encode())
+    if public_key.verify(bytes.fromhex(sig), str(update_time).encode()):
         for node in nodes:
             if node["ip"] == ip:
                 node["pub_key"] = new_key
@@ -627,23 +624,23 @@ def update_node(ip, update_time, old_key, new_key, port, node_version, sig):
         with open(f"{os.path.dirname(__file__)}./info/nodes.json", "w") as file:
             json.dump(nodes, file)
             print("NODE UPDATED")
-    except:
+    else:
         return "update invalid"
 
 
 def delete_node(deletion_time, ip, pub_key, sig):
     with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
         nodes = json.load(file)
-    public_key = VerifyingKey.from_string(bytes.fromhex(pub_key), curve=SECP112r2)
-    try:
-        assert public_key.verify(bytes.fromhex(sig), str(deletion_time).encode())
-        for node in nodes:
-            if node["ip"] == ip and node["pub_key"] == pub_key:
-                nodes.remove(node)
-        with open(f"{os.path.dirname(__file__)}/info/nodes.json", "w") as file:
-            json.dump(nodes, file)
-    except:
-        return "cancel invalid"
+    if time.time() - float(deletion_time) < 60:
+        public_key = VerifyingKey.from_string(bytes.fromhex(pub_key), curve=SECP112r2)
+        if public_key.verify(bytes.fromhex(sig), str(deletion_time).encode()):
+            for node in nodes:
+                if node["ip"] == ip and node["pub_key"] == pub_key:
+                    nodes.remove(node)
+            with open(f"{os.path.dirname(__file__)}/info/nodes.json", "w") as file:
+                json.dump(nodes, file)
+        else:
+            return "cancel invalid"
 
 
 def version():
@@ -675,8 +672,46 @@ class UnrecognisedArg(NodeError):
     pass
 
 
+def check_float(value):
+    try:
+        float(value)
+        if float(value) < 0:
+            raise ValueTypeError
+        if value.isdigit():
+            raise ValueTypeError
+        return True
+    except ValueError:
+        return False
+
+
+def check_int(value):
+    if value.isdigit():
+        return True
+    else:
+        return False
+
+
 #  TODO add AI_JOB protocols
 def message_handler(message):
+    """
+    All messages are in the form of "<ip> PROTOCOL <args...>"
+
+    HELLO <ip> <port> <pub_key> <version> <node_type> <signature>
+    UPDATE <ip> <update_time> <old_key> <new_key> <port> <version> <signature>
+    DELETE <ip> <deletion_time> <public_key> <signature>
+    GET_NODES <ip>
+    NREQ <ip> <nodes>
+    BLOCKCHAIN? <ip>
+    BREQ <ip> <blockchain>
+    VALID <ip> <block_index> <validation_time>
+    TRANS_INVALID <block_index> <transaction_index>
+    TRANS <ip> <transaction_time> <sender_public_key> <recipient_public_key> <transaction_value> <signature>
+    STAKE <ip> <staking_time> <public_key> <stake_value> <signature>
+    UNSTAKE <ip> <unstaking_time> <public_key> <unstake_value> <signature>
+    ONLINE? <ip>
+    ERROR <ip> <error_message>
+    yh <ip>
+    """
     try:
         if isinstance(message, str):
             message = message.split(" ")
@@ -687,58 +722,46 @@ def message_handler(message):
     node_types = ["Lite", "Blockchain", "AI", "dist"]
 
     if protocol == "GET_NODES":
-        # host, GET_NODES
         if len(message) != 2:
-            raise UnrecognisedArg("number of args given incorrect")
+            raise UnrecognisedArg(f"number of args given incorrect during {protocol}")
 
     elif protocol == "HELLO":
         # host, HELLO, announcement_time, public key, port, version, node type, sig
         if len(message) != 8:
             raise UnrecognisedArg("number of args given incorrect")
 
-        try:
-            float(message[2])
-            if "." not in message[2]:
-                Exception()
-        except:
+        if not check_float(message[2]):
             raise ValueTypeError("time not given as float")
 
         if len(message[3]) != 56:
             raise UnrecognisedArg("Public Key is the wrong size")
 
-        try:
-            port = int(message[4])
-        except:
+        if not check_int(message[4]):
             raise ValueTypeError("port not given as int")
+        else:
+            port = int(message[4])
 
         if not port > 0 and port < 65535:
             raise ValueTypeError("TCP port out of range")
 
-        try:
-            float(message[5])
-            if "." not in message[5]:
-                Exception()
-        except:
+        if not check_float(message[5]):
             raise ValueTypeError("version not given as float")
 
         if message[6] not in node_types:
             raise UnrecognisedArg("Node Type Unknown")
+
+        if len(message[7]) != 56:
+            raise UnrecognisedArg("Signature is the wrong size")
 
     elif protocol == "VALID":
         # host, VALID , block index, time of validation
         if len(message) != 4:
             raise UnrecognisedArg("number of args given incorrect")
 
-        try:
-            int(message[2])
-        except:
+        if not check_int(message[2]):
             raise ValueTypeError("Block Index not given as int")
 
-        try:
-            float(message[3])
-            if "." not in message[3]:
-                Exception()
-        except:
+        if not check_float(message[3]):
             raise ValueTypeError("time not given as float")
 
     elif protocol == "TRANS_INVALID":
@@ -746,14 +769,10 @@ def message_handler(message):
         if len(message) != 4:
             raise UnrecognisedArg("number of args given incorrect")
 
-        try:
-            int(message[2])
-        except:
+        if not check_int(message[2]):
             raise ValueTypeError("Block Index not given as int")
 
-        try:
-            int(message[3])
-        except:
+        if not check_int(message[3]):
             raise ValueTypeError("Transaction Index not given as int")
 
     elif protocol == "ONLINE?":
@@ -767,55 +786,59 @@ def message_handler(message):
             raise UnrecognisedArg("number of args given incorrect")
 
     elif protocol == "UPDATE":
-        # host, UPDATE, update time, public key, port, version, sig
+        # host, UPDATE, update time, old public key, new public key, port, version, sig
         if len(message) != 7:
             raise UnrecognisedArg("number of args given incorrect")
 
-        try:
-            float(message[2])
-            if "." not in message[2]:
-                Exception()
-        except:
+        if not check_float(message[2]):
             raise ValueTypeError("time not given as float")
 
         if len(message[3]) != 56:
-            raise UnrecognisedArg("Public Key is the wrong size")
+            raise UnrecognisedArg("Old Public Key is the wrong size")
 
-        try:
-            port = int(message[4])
-        except:
+        if len(message[4]) != 56:
+            raise UnrecognisedArg("New Public Key is the wrong size")
+
+        if not check_int(message[5]):
             raise ValueTypeError("port not given as int")
+        else:
+            port = int(message[5])
 
         if not port >= 0 and port < 65535:
             raise ValueTypeError("TCP port out of range")
 
-        try:
-            float(message[5])
-            if "." not in message[5]:
-                Exception()
-        except:
+        if check_float(message[6]):
             raise ValueTypeError("version not given as float")
+
+        if len(message[7]) != 56:
+            raise UnrecognisedArg("Signature is the wrong size")
 
     elif protocol == "DELETE":
         # host, DELETE, time, public key, sig
         if len(message) != 5:
             raise UnrecognisedArg("number of args given incorrect")
 
+        if not check_float(message[2]):
+            raise ValueTypeError("time not given as float")
+
         if len(message[3]) != 56:
             raise UnrecognisedArg("Public Key is the wrong size")
 
+        if len(message[4]) != 56:
+            raise UnrecognisedArg("Signature is the wrong size")
+
     elif protocol == "BREQ":
-        # host, BREQ, Blockchain
+        # host, BREQ, blockchain
         try:
             ast.literal_eval(message[2])
-        except:
+        except ValueError:
             raise ValueTypeError("Blockchain not given as Blockchain")
 
     elif protocol == "NREQ":
-        # host, NREQ, Nodes
+        # host, NREQ, nodes
         try:
             ast.literal_eval(message[2])
-        except:
+        except ValueError:
             raise ValueTypeError("Blockchain not given as Node List")
 
     elif protocol == "TRANS":
@@ -823,11 +846,7 @@ def message_handler(message):
         if len(message) != 7:
             raise UnrecognisedArg("number of args given incorrect")
 
-        try:
-            float(message[2])
-            if "." not in message[2]:
-                Exception()
-        except:
+        if not check_float(message[2]):
             raise ValueTypeError("time not given as float")
 
         if len(message[3]) != 56:
@@ -836,12 +855,11 @@ def message_handler(message):
         if len(message[4]) != 56:
             raise UnrecognisedArg("Receivers Public Key is the wrong size")
 
-        try:
-            float(message[5])
-            if "." not in message[5]:
-                Exception()
-        except:
-            raise ValueTypeError("amount not given as float")
+        if not check_float(message[5]):
+            raise ValueTypeError("Amount not given as float")
+
+        if len(message[6]) != 56:
+            raise UnrecognisedArg("Signature is the wrong size")
 
     elif protocol == "ERROR":
         pass
@@ -854,25 +872,33 @@ def message_handler(message):
         if len(message) != 6:
             raise UnrecognisedArg("number of args given incorrect")
 
-        try:
-            float(message[2])
-            if "." not in message[2]:
-                Exception()
-        except:
+        if not check_float(message[2]):
             raise ValueTypeError("time not given as float")
 
         if len(message[3]) != 56:
             raise UnrecognisedArg("Public Key is the wrong size")
 
-        try:
-            float(message[4])
-            if "." not in message[4]:
-                Exception()
-        except:
-            raise ValueTypeError("amount not given as float")
+        if not check_float(message[4]):
+            raise ValueTypeError("Stake value not given as float")
 
-    elif protocol == "UNSTAKE": #TODO complete
-        pass
+        if len(message[5]) != 56:
+            raise UnrecognisedArg("Signature is the wrong size")
+
+    elif protocol == "UNSTAKE":
+        if len(message) != 6:
+            raise UnrecognisedArg("number of args given incorrect")
+
+        if not check_float(message[2]):
+            raise ValueTypeError("time not given as float")
+
+        if len(message[3]) != 56:
+            raise UnrecognisedArg("Public Key is the wrong size")
+
+        if not check_float(message[4]):
+            raise ValueTypeError("Unstake value not given as float")
+
+        if len(message[5]) != 56:
+            raise UnrecognisedArg("Signature is the wrong size")
 
     else:
         raise UnrecognisedCommand("protocol unrecognised")
