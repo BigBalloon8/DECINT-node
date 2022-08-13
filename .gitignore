@@ -1,2 +1,4 @@
 __pycache__/
 DECINT.egg-info/
+*.pyc
+*.cpython-39.pyc
