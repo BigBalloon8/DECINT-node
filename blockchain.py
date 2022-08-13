@@ -8,10 +8,10 @@ import os
 import validator
 import copy
 # from numba import jit
-import pickle
 import time
 import random
 import json
+from timeit import default_timer as timer
 
 
 def priv_key_gen():
@@ -52,27 +52,82 @@ def quick_sort_block(arr):
         return arr
 
 
+class BigList:  # to prevent running out of memory access different parts of the list at a time
+    def __init__(self):
+        self.paths = [f"{os.path.dirname(__file__)}/info/blockchain/" + file_path for file_path in
+                      os.listdir(os.path.dirname(__file__) + "/info/blockchain/")]
+
+    def __getitem__(self, index):
+        if index >= 0:
+            file_num = index // 10000
+            block_index = index - (file_num * 10000)
+            with open(self.paths[file_num], "r") as file:
+                chunk = json.load(file)
+            return chunk[block_index]
+
+        else:
+            with open(self.paths[-1], "r") as file:
+                chunk = json.load(file)
+            if len(chunk) > 1:
+                return chunk[index]
+            else:
+                with open(self.paths[-2], "r") as file:
+                    chunk = json.load(file)
+                return chunk[index + 1]
+
+    def __len__(self, files=False):
+        with open(self.paths[-1], "r") as file:
+            chunk = json.load(file)
+        return ((len(self.paths) - 1) * 10000) + len(chunk)
+
+    def __next__(self):
+        for path in self.paths:
+            with open(path, "r") as file:
+                chunk = json.load(file)
+            for block in chunk:
+                yield block
+
+    def __repr__(self):
+        chain = "["
+        for path in self.paths:
+            with open(path, "r") as file:
+                chain = chain + str(json.load(file))[1:-1] + ","
+        return chain + "]"
+
+    def __setitem__(self, key, value):
+        with open(self.paths[key // 10000], "r") as file:
+            chunk = json.load(file)
+        chunk[key - ((key // 10000) * 10000)] = value
+        with open(self.paths[key // 10000], "w") as file:
+            json.dump(chunk, file)
+
+    def append(self, block):
+        with open(self.paths[-1], "r") as file:
+            chunk = json.load(file)
+        if len(chunk) == 10000:
+            with open(f"{os.path.dirname(__file__)}/info/blockchain/blockchain{len(self.paths)}.json",
+                      "w+") as file:
+                json.dump([block], file)
+            self.paths.append(f"{os.path.dirname(__file__)}/info/blockchain/blockchain{len(self.paths)}.json")
+        else:
+            with open(self.paths[-1], "w") as file:
+                json.dump(chunk + [block], file)
+
+    def update(self, chunk_num, chunk):
+        with open(self.paths[chunk_num], "w") as file:
+            json.dump(chunk, file)
+
+    def return_chunk(self, chunk_num):
+        with open(self.paths[chunk_num], "r") as file:
+            chunk = json.load(file)
+        print(chunk)
+        return chunk
+
+
 class Blockchain:
 
     def __init__(self):
-        self.chain = [[["0"], {"time": 0.0, "sender": "0", "receiver": "0", "amount": 2 ** 23, "sig": "0"},
-                       ["c484eb3cfd69ad6c289dcc1e1b671929cdb7b6a63f75a4d21e8d1e126ad8433d", 0.0], [0],
-                       [True, 1.0, "0"]],
-                      [["c484eb3cfd69ad6c289dcc1e1b671929cdb7b6a63f75a4d21e8d1e126ad8433d"],
-                       {"time": 901.0, "sender": "0",
-                        "receiver": "6efa5bfa8a9bfebaacacf9773f830939d8cb4a2129c1a2aaafaaf549", "amount": 2 ** 23,
-                        "sig": "0"},
-                       {"time": 902.0, "pub_key": "6efa5bfa8a9bfebaacacf9773f830939d8cb4a2129c1a2aaafaaf549",
-                        "stake_amount": 1.0,
-                        "sig": "3091bd6627300ae1790449b90d3b093f6f364553d9e56f422b64138f"},
-                       ["6db4f412053b48a7f2579ed59d28a7d623ef6ebc9d5023b17cb331b8b92d5be8", 902.0], [0],
-                       [True, 903.0, "0"]],
-                      [["6db4f412053b48a7f2579ed59d28a7d623ef6ebc9d5023b17cb331b8b92d5be8"],
-                       {"time": 1802.0, "pub_key": "6efa5bfa8a9bfebaacacf9773f830939d8cb4a2129c1a2aaafaaf549",
-                        "stake_amount": 1.0,
-                        "sig": "225a69aee9a4a360ba496c11b3e030321371246cfccf86e9ed7c8056"}
-                       ]
-                      ]
+        self.chain = BigList()
 
     def __repr__(self):
         return str(self.chain)  # .replace("]", "]\n")
@@ -80,13 +135,9 @@ class Blockchain:
     def print_block(self, block_index):
         return str(self.chain[block_index]).replace("]", "]\n")
 
-    def __len__(self, block=False):
-        if not block:
-            return len(self.chain)
-        elif block >= 0:
-            return len(self.chain[block])
-        else:
-            raise IndexError("Block Index now found")
+    def __len__(self):
+        return len(self.chain)
+
 
     def __bool__(self):
         print("The Blockchain never lies")
@@ -101,7 +152,7 @@ class Blockchain:
     def get_block(self, block_index: int):
         try:
             return self.chain[block_index]
-        except IndexError as e:
+        except IndexError:
             print("block not found")
 
     def block_sort(self, block):
@@ -134,41 +185,41 @@ class Blockchain:
         hex_hashed = hashed.hexdigest()
         return hex_hashed
 
-    def update(self, new_chain1, new_chain2):
+    def update(self, new_chunk1, new_chunk2, chunk_num):
         index = 0
-        for block in new_chain1[::-1]:  # removing invalid blocks and comparing with other
+        for block in new_chunk1[::-1]:  # removing invalid blocks and comparing with other
             if isinstance(block[-1], list):
                 if not block[-1][0]:
                     index += 1
                     continue
                 else:
-                    shortened_new_chain1 = new_chain1[:-index]
+                    shortened_new_chunk1 = new_chunk1[:-index]
                     break
             else:
                 index += 1
                 continue
 
         index = 0
-        for block in new_chain2[::-1]:  # removing invalid blocks and comparing with other
+        for block in new_chunk2[::-1]:  # removing invalid blocks and comparing with other
             if isinstance(block[-1], list):
                 if not block[-1][0]:
                     index += 1
                     continue
                 else:
-                    shortened_new_chain2 = new_chain2[:-index]
+                    shortened_new_chunk2 = new_chunk2[:-index]
                     break
             else:
                 index += 1
                 continue
-        hash1 = hashlib.sha3_512(str(shortened_new_chain1).encode())
-        hash2 = hashlib.sha3_512(str(shortened_new_chain2).encode())
+        hash1 = hashlib.sha3_512(str(shortened_new_chunk1).encode())
+        hash2 = hashlib.sha3_512(str(shortened_new_chunk2).encode())
         print("\n", hash1.hexdigest(), hash2.hexdigest())
         if hash1.hexdigest() == hash2.hexdigest():
-            new_chain = new_chain1
+            new_chunk = new_chunk1
         else:
             return False
-        self.chain = new_chain
-        print("BLOCKCHAIN UPDATED SUCCESSFULLY")
+        self.chain.update(chunk_num, new_chunk)
+        print(f"CHUNK {chunk_num} UPDATED SUCCESSFULLY")
         return True
 
     # @jit(nopython=True)
@@ -374,7 +425,7 @@ class Blockchain:
         validators = []
         for bhash in self.chain[block_index][-3]:
             if isinstance(bhash, str):
-                #TODO figure out how to include validation time to ony return one node
+                # TODO figure out how to include validation time to ony return one node
                 validators + validator.rb(block_hash=bhash, block_time=self.chain[-3][1], invalid=True)
         for node_ in nodes:
             if node_["ip"] == ip:
@@ -408,10 +459,10 @@ class Blockchain:
 
         if not invalid_trans_:  # TODO update liar system
             stake_removal = f"LIAR {node_pub} {ip}"
-            with open(f"{os.path.dirname(__file__)}./info/stake_trans.json", "r") as file:
+            with open(f"{os.path.dirname(__file__)}/info/stake_trans.json", "r") as file:
                 stake_trans = json.load(file)
             stake_trans.append(stake_removal)
-            with open(f"{os.path.dirname(__file__)}./info/stake_trans.json", "w") as file:
+            with open(f"{os.path.dirname(__file__)}/info/stake_trans.json", "w") as file:
                 json.dump(file)
 
     def block_valid(self, block_index: int, public_key: str, time_of_validation: float):
@@ -441,33 +492,18 @@ class Blockchain:
 
                 else:
                     stake_removal = f"LIAR {ran_node['pub_key']} {ran_node['ip']}"
-                    with open(f"{os.path.dirname(__file__)}./info/stake_trans.json", "r") as file:
+                    with open(f"{os.path.dirname(__file__)}/info/stake_trans.json", "r") as file:
                         stake_trans = json.load(file)
                     stake_trans.append(stake_removal)
-                    with open(f"{os.path.dirname(__file__)}./info/stake_trans.json", "w") as file:
+                    with open(f"{os.path.dirname(__file__)}/info/stake_trans.json", "w") as file:
                         json.dump(file)
 
-
-    def send_blockchain(self):
-        return str(self.chain).replace(" ", "")
-
-
-class CustomUnpickler(pickle.Unpickler):
-
-    def find_class(self, module, name):
-        if name == 'Blockchain':
-            return Blockchain
-        return super().find_class(module, name)
-
-
-def write_blockchain(blockchain):
-    with open(f"{os.path.dirname(__file__)}/info/Blockchain.pickle", "wb") as file:
-        pickle.dump(blockchain, file)
+    def return_blockchain(self, chunk):
+        return self.chain.return_chunk(chunk)
 
 
 def read_blockchain():
-    with open(f"{os.path.dirname(__file__)}/info/Blockchain.pickle", "rb") as file:
-        return CustomUnpickler(file).load()
+    return Blockchain()
 
 
 def read_nodes():
@@ -482,15 +518,13 @@ def validate_blockchain(block_index, ip, time_):
     for node_ in nodes:
         if node_[1] == ip:
             wallet = node_[2]
+            chain.block_valid(block_index, wallet, time_)
             break
-    chain.block_valid(block_index, wallet, time_)
-    write_blockchain(chain)
 
 
 def invalid_blockchain(block_index, transaction_index, ip):
     chain = read_blockchain()
     chain.invalid_trans(block_index, transaction_index, ip)
-    write_blockchain(chain)
 
 
 def get_wallet_val(pub_key):
@@ -552,11 +586,11 @@ if __name__ == "__main__":
     # trans = test_transaction("", "da886ae3ec4c355170586317fed0102854f2b9705f58772415577265", 100)
     # print(trans)
     # key_tester()
-    CHAIN = Blockchain()
+    #CHAIN = Blockchain()
     # print("hash: ", CHAIN.hash_block(1))
-    write_blockchain(CHAIN)
+    # write_blockchain(CHAIN)
     # print(CHAIN)
     # print(CHAIN.hash_block(CHAIN[-1]))
     # print(read_blockchain().send_blockchain())
-
-    pass
+    #print(len(CHAIN))
+    chain = BigList()

@@ -19,8 +19,9 @@ def read():
                     continue
 
                 if message[1] == "ONLINE?":
+                    pass
                     #print(f"yh sent to {message[0]}")
-                    node.send(message[0], "yh")
+                    #node.send(message[0], "yh")
 
                 elif message[1] == "GET_NODES":
                     #print("GET_NODES")
@@ -29,7 +30,12 @@ def read():
                 elif message[1] == "BLOCKCHAIN?":
                     #print("BLOCKCHAIN?")
                     chain = blockchain.read_blockchain()
-                    node.send(message[0], "BREQ " + chain.send_blockchain())
+                    node.send(message[0], "BREQ " + str(chain.return_blockchain(int(message[2]))).replace(" ", ""))
+
+                elif message[1] == "BLOCKCHAINLEN?":
+                    #print("getting BLOCKCHAINLEN?")
+                    chain = blockchain.read_blockchain()
+                    node.send(message[0], "BLENREQ " + str(len(chain)))
 
 
 if __name__ == "__main__":

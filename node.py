@@ -270,8 +270,8 @@ def request_reader(type_, ip="192.168.68.1"):
         lines = file.read().splitlines()
     nreq_protocol = ["NREQ"]  # node request
     yh_protocol = ["yh"]
-    breq_protocol = ["BREQ"]
-    pre_protocol = ["ONLINE?", "GET_NODES", "BLOCKCHAIN?"]
+    breq_protocol = ["BREQ", "BLENREQ"]
+    pre_protocol = ["ONLINE?", "GET_NODES", "BLOCKCHAIN?", "BLOCKCHAINLEN?"]
 
     node_lines = []
     nreq_lines = []
@@ -464,97 +464,77 @@ def updator():  # send ask the website for Blockchain as most up to date
             tries += 1
             continue
 
-    print("---GETTING BLOCKCHAIN---")
-    send(node["ip"], "BLOCKCHAIN?")
-    tries = 0
-    while True:
-        if tries == 10:
-            get_blockchain_no_nodes()
-            return
-        time.sleep(2)
-        lines = request_reader("BREQ")
-        if lines:
-            line = lines[0].split(" ")
-            if line[0] == node["ip"]:
-                new_chain_1 = ast.literal_eval(line[2])
-                print("---BLOCKCHAIN 1 RECEIVED---")
-                break
-        else:
-            tries += 1
-    time.sleep(1)
-    node = rand_act_node(type_="Blockchain")
-    time.sleep(0.1)
-    send(node["ip"], "BLOCKCHAIN?")
-    tries = 0
-    while True:
-        if tries == 10:
-            get_blockchain_no_nodes()
-            return
-        time.sleep(2)
-        lines = request_reader("BREQ")
-        if lines:
-            line = lines[0].split(" ")
-            if line[0] == node["ip"]:
-                new_chain_2 = ast.literal_eval(line[2])
-                print("---BLOCKCHAIN 2 RECEIVED---")
-                break
-        else:
-            tries += 1
+    get_blockchain_no_nodes()
 
-    chain = blockchain.read_blockchain()
-    check = chain.update(new_chain_1, new_chain_2)
-    if check:
-        blockchain.write_blockchain(chain)
-    else:
-        get_blockchain_no_nodes()
+
+def get_blockchain_len():
+    node = rand_act_node()
+    time.sleep(1)
+    send(node["ip"], "BLOCKCHAINLEN?")
+    time.sleep(1)
+    lines = request_reader("BREQ")
+    if lines:
+        print(f"BREQ LINE: {lines[0]}")
+        line = lines[0].split(" ")
+        if line[0] == node["ip"]:
+            length = int(line[2])
+            print("---BLOCKCHAIN LENGTH RECEIVED---")
+            return length
 
 
 def get_blockchain_no_nodes():
     print("---GETTING BLOCKCHAIN---")
-    node = rand_act_node()
-    time.sleep(0.1)
-    send(node["ip"], "BLOCKCHAIN?")
-    tries = 0
-    while True:
-        if tries == 10:
-            get_blockchain_no_nodes()
-            return
-        time.sleep(2)
-        lines = request_reader("BREQ")
-        if lines:
-            line = lines[0].split(" ")
-            if line[0] == node["ip"]:
-                new_chain_1 = ast.literal_eval(line[2])
-                print("---BLOCKCHAIN 1 RECEIVED---")
-                break
-        else:
-            tries += 1
-    time.sleep(1)
-    node = rand_act_node()
-    print(node)
-    send(node["ip"], "BLOCKCHAIN?")
-    tries = 0
-    while True:
-        if tries == 10:
-            get_blockchain_no_nodes()
-            return
-        time.sleep(2)
-        lines = request_reader("BREQ")
-        if lines:
-            line = lines[0].split(" ")
-            if line[0] == node["ip"]:
-                new_chain_2 = ast.literal_eval(line[2])
-                print("---BLOCKCHAIN 2 RECEIVED---")
-                break
-        else:
-            tries += 1
-
-    chain = blockchain.read_blockchain()
-    check = chain.update(new_chain_1, new_chain_2)
-    if check:
-        blockchain.write_blockchain(chain)
-    else:
+    len1 = get_blockchain_len()//10000
+    len2 = get_blockchain_len()//10000
+    if len1 != len2:
+        print("len1 =! len2")
         get_blockchain_no_nodes()
+        return
+    print("len1 == len2")
+    for i in range(len1+1):
+        node = rand_act_node()
+        time.sleep(1)
+        send(node["ip"], f"BLOCKCHAIN? {i}")
+        tries = 0
+        while True:
+            if tries == 10:
+                get_blockchain_no_nodes()
+                return
+            time.sleep(2)
+            lines = request_reader("BREQ")
+            if lines:
+                line = lines[0].split(" ")
+                if line[0] == node["ip"]:
+                    new_chunk_1 = ast.literal_eval(line[2])
+                    print(f"---CHUNK {i} NODE 1 RECEIVED---")
+                    break
+            else:
+                tries += 1
+        time.sleep(1)
+
+        node = rand_act_node()
+        time.sleep(0.1)
+        send(node["ip"], f"BLOCKCHAIN? {i}")
+        tries = 0
+        while True:
+            if tries == 10:
+                get_blockchain_no_nodes()
+                return
+            time.sleep(2)
+            lines = request_reader("BREQ")
+            if lines:
+                line = lines[0].split(" ")
+                if line[0] == node["ip"]:
+                    new_chunk_2 = ast.literal_eval(line[2])
+                    print(f"---CHUNK {i} NODE 2 RECEIVED---")
+                    break
+            else:
+                tries += 1
+
+        chain = blockchain.read_blockchain()
+        check = chain.update(new_chunk_1, new_chunk_2, i)
+        if not check:
+            get_blockchain_no_nodes()
 
 
 def get_nodes_no_blockchain():
@@ -710,7 +690,8 @@ def message_handler(message):
     UNSTAKE <ip> <unstaking_time> <public_key> <unstake_value> <signature>
     ONLINE? <ip>
     ERROR <ip> <error_message>
-    yh <ip>
+    BLOCKCHAINLEN? <ip>
+    BLENREQ <ip> <number_of_chunks>
     """
     try:
         if isinstance(message, str):
@@ -782,8 +763,11 @@ def message_handler(message):
 
     elif protocol == "BLOCKCHAIN?":
         # host, BLOCKCHAIN?
-        if len(message) != 2:
+        if len(message) != 3:
             raise UnrecognisedArg("number of args given incorrect")
+
+        if not check_int(message[2]):
+            raise ValueTypeError("Chunk Index not given as int")
 
     elif protocol == "UPDATE":
         # host, UPDATE, update time, old public key, new public key, port, version, sig
@@ -807,7 +791,7 @@ def message_handler(message):
         if not port >= 0 and port < 65535:
             raise ValueTypeError("TCP port out of range")
 
-        if check_float(message[6]):
+        if not check_float(message[6]):
             raise ValueTypeError("version not given as float")
 
         if len(message[7]) != 56:
@@ -899,6 +883,17 @@ def message_handler(message):
 
         if len(message[5]) != 56:
             raise UnrecognisedArg("Signature is the wrong size")
+
+    elif protocol == "BLOCKCHAINLEN?":
+        if len(message) != 2:
+            raise UnrecognisedArg("number of args given incorrect")
+
+    elif protocol == "BLENREQ":
+        if len(message) != 3:
+            raise UnrecognisedArg("number of args given incorrect")
+
+        if not check_int(message[2]):
+            raise ValueTypeError("Blockchain length not given as int")
 
     else:
         raise UnrecognisedCommand("protocol unrecognised")

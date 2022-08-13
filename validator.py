@@ -75,9 +75,8 @@ def am_i_validator():
         my_pub = file.read()
     while True:
         chain = blockchain.read_blockchain()
-        chain = chain  # return actual chain not object
-        block_index = len(chain)-1
-        for block in chain[::-1]:  # not efficient as checking validated blocks
+        block_index = 0
+        for block in chain:  # not efficient as checking validated blocks
             if isinstance(block[-1], list):
                 if not block[-1][0]:
                     if int(time.time() - float(chain[-3][1])) > 30:
@@ -89,4 +88,4 @@ def am_i_validator():
                             print(f"I AM VALIDATOR, B{block_index}")
                             chain_ = blockchain.read_blockchain()
                             chain_.validate(block_index, time_valid)
-            block_index -= 1
+            block_index += 1

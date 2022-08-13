@@ -3,7 +3,7 @@ import install_decint
 import node
 import time
 import blockchain
-import pickle
+import json
 from ecdsa import SigningKey, VerifyingKey, SECP112r2
 import boot
 import os
@@ -99,8 +99,8 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
             pub_key = file.read()
         click.echo("\nCalculating amount your wallet has staked")
         val = 0.0
-        with open(f"{os.path.dirname(__file__)}/info/stake_trans.pickle", "rb") as f:
-            stake_transactions = pickle.load(f)
+        with open(f"{os.path.dirname(__file__)}/info/stake_trans.json", "rb") as f:
+            stake_transactions = json.load(f)
         for stake_trans in stake_transactions:
             if stake_trans["pub_key"] == pub_key and "stake_amount" in stake_trans:
                 val += stake_trans["stake_amount"]
