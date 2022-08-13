@@ -95,11 +95,26 @@ class BigList:  # to prevent running out of memory access different parts of the
         return chain + "]"
 
     def __setitem__(self, key, value):
-        with open(self.paths[key // 10000], "r") as file:
-            chunk = json.load(file)
-        chunk[key - ((key // 10000) * 10000)] = value
-        with open(self.paths[key // 10000], "w") as file:
-            json.dump(chunk, file)
+        if key >= 0:
+            with open(self.paths[key // 10000], "r") as file:
+                chunk = json.load(file)
+            chunk[key - ((key // 10000) * 10000)] = value
+            with open(self.paths[key // 10000], "w") as file:
+                json.dump(chunk, file)
+        else:
+            with open(self.paths[-1], "r") as file:
+                chunk = json.load(file)
+            if len(chunk) > 1:
+                chunk[key] = value
+                with open(self.paths[-1], "w") as file:
+                    json.dump(chunk, file)
+            else:
+                with open(self.paths[-2], "r") as file:
+                    chunk = json.load(file)
+                chunk[key + 1] = value
+                with open(self.paths[-2], "w") as file:
+                    json.dump(chunk, file)
+
 
     def append(self, block):
         with open(self.paths[-1], "r") as file:
@@ -225,9 +240,10 @@ class Blockchain:
     # @jit(nopython=True)
     def wallet_value(self, wallet_address, block_index=None):
         value = 0.0
-        if not block_index:
-            block_index = len(self.chain) - 1
-        for block in self.chain[:(block_index + 1)]:
+        cur_index = 0 # this has to ber done as self.chain[:block_index + 1] doesn't work with BigList class
+        for block in self.chain:
+            if block_index == cur_index:
+                break
             for trans in block:
                 if isinstance(trans, dict):
                     if "amount" in trans:
@@ -255,15 +271,16 @@ class Blockchain:
                 if block[-1][0]:
                     if block[-1][2] == wallet_address:
                         value += block[-2][0] * 0.5
+            cur_index += 1
 
         return value
 
     def get_stake_value(self, wallet_address, block_index=None):
         value = 0.0
-        if not block_index:
-            block_index = len(self.chain) - 1
-        for block in self.chain[:(
-                block_index + 1)]:  # the reason to not use stake_trans.pickle is you don't know id the trans is valid
+        cur_index = 0  # this has to ber done as self.chain[:block_index + 1] doesn't work with BigList class
+        for block in self.chain:  # the reason to not use stake_trans.json is you don't know what block trans is in
+            if cur_index == block_index:
+                break
             for trans in block:
                 if isinstance(trans, dict):
                     if "amount" in trans:
@@ -279,7 +296,7 @@ class Blockchain:
                     if wallet_address in trans:
                         if "LIAR" in trans:
                             return 0.0
-
+            cur_index += 1
         return value
 
     def add_transaction(self, trans: dict):
@@ -586,11 +603,15 @@ if __name__ == "__main__":
     # trans = test_transaction("", "da886ae3ec4c355170586317fed0102854f2b9705f58772415577265", 100)
     # print(trans)
     # key_tester()
-    #CHAIN = Blockchain()
+    CHAIN = Blockchain()
     # print("hash: ", CHAIN.hash_block(1))
     # write_blockchain(CHAIN)
     # print(CHAIN)
     # print(CHAIN.hash_block(CHAIN[-1]))
     # print(read_blockchain().send_blockchain())
     #print(len(CHAIN))
-    chain = BigList()
+    print(CHAIN.wallet_value("6efa5bfa8a9bfebaacacf9773f830939d8cb4a2129c1a2aaafaaf549"))
+    
+    
+    
+    
