@@ -56,6 +56,7 @@ class BigList:  # to prevent running out of memory access different parts of the
     def __init__(self):
         self.paths = [f"{os.path.dirname(__file__)}/info/blockchain/" + file_path for file_path in
                       os.listdir(os.path.dirname(__file__) + "/info/blockchain/")]
+        # TODO have most recent chunk not have to be opened every time (store in memory as list)
 
     def __getitem__(self, index):
         if index >= 0:
