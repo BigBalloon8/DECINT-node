@@ -330,7 +330,7 @@ class Blockchain:
         elif relative_time > 900:
             b_time = self.chain[-1][-1]["time"]
             block_hash = self.hash_block(self.chain[-1])
-            trans_fees = 0
+            trans_fees = 0.0
             for b_trans in self.chain[-1]:
                 if isinstance(b_trans, dict):
                     if "amount" in b_trans:
@@ -339,7 +339,7 @@ class Blockchain:
             block = copy.copy(self.chain[-1])
             self.chain[-1] = self.block_sort(block)
             # self.chain[-1] = block.insert(0, self.chain[-1][0]) #  this was coded a while ago there may be a reason but idk
-            self.chain[-1].append([block_hash, b_time])
+            self.chain[-1].append([block_hash, b_time]) #TODO doesnt write to json file
             self.chain[-1].append([trans_fees])
             self.chain[-1].append([False, b_time])
 
@@ -377,7 +377,7 @@ class Blockchain:
         elif relative_time > 900:  # if new block is needed
             b_time = self.chain[-1][-1]["time"]
             block_hash = self.hash_block(self.chain[-1])
-            trans_fees = 0
+            trans_fees = 0.0
             for b_trans in self.chain[-1]:
                 if isinstance(b_trans, dict):
                     if "amount" in b_trans:
@@ -396,6 +396,7 @@ class Blockchain:
 
     def validate(self, block_index: int, time_of_validation: float, validating: bool = True):
         trans_index = 0
+        # TODO check block hash is the same as other nodes?
         for trans in self.chain[block_index]:
             if isinstance(trans, dict):
                 if "amount" in trans:
@@ -611,7 +612,9 @@ if __name__ == "__main__":
     # print(CHAIN.hash_block(CHAIN[-1]))
     # print(read_blockchain().send_blockchain())
     #print(len(CHAIN))
-    print(CHAIN.wallet_value("6efa5bfa8a9bfebaacacf9773f830939d8cb4a2129c1a2aaafaaf549"))
+    CHAIN[-1][-1] = 3
+    print(CHAIN)
+    #print(CHAIN.wallet_value("6efa5bfa8a9bfebaacacf9773f830939d8cb4a2129c1a2aaafaaf549"))
     
     
     
