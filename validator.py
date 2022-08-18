@@ -53,9 +53,13 @@ def rb(block_hash, block_time, time_validation=time.time(), invalid=False):
         #amount_staked = math.floor(amount_staked)
         node_weights.append(amount_staked)
 
+    print(node_weights)
     random.seed(hash_num(block_hash))
     time_since_complete = time_validation - block_time
-    number_of_misses = math.ceil(time_since_complete/300)
+    number_of_misses = int(time_since_complete//300)
+    if number_of_misses > 100000: 
+        print(number_of_misses)
+        number_of_misses = 0
     rand_node = random.choices(nodes, weights=node_weights, k=(number_of_misses + 1))
     if not invalid:
         return rand_node , time_validation
@@ -76,16 +80,20 @@ def am_i_validator():
     while True:
         chain = blockchain.read_blockchain()
         block_index = 0
-        for block in chain:  # not efficient as checking validated blocks
+        for block in chain:  # not efficient as you are checking validated blocks
             if isinstance(block[-1], list):
                 if not block[-1][0]:
-                    if int(time.time() - float(chain[-3][1])) > 30:
+                    print(f"Block {block_index} is not valid")
+                    if (time.time() - float(chain[-3][1])) > 30.0:
                         block_time = block[-3][1]
                         block_hash = block[-3][0]
-                        node, time_valid = rb(block_hash, block_time)
+                        node, time_of_valid = rb(block_hash, block_time)
 
                         if node["pub_key"] == my_pub:
                             print(f"I AM VALIDATOR, B{block_index}")
                             chain_ = blockchain.read_blockchain()
-                            chain_.validate(block_index, time_valid)
+                            chain_.validate(block_index, time_of_valid)
             block_index += 1
+
+if __name__ == '__main__':
+    print(rb("c547877025c260fa5cad96072a16b51c85a99c01cc15058781a7a301ea5edcab", 1802.0))
