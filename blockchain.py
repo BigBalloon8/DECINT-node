@@ -33,26 +33,64 @@ def sign_trans(private_key, transaction):
     return signature
 
 
-def quick_sort_block(arr):
+def quick_sort_block(block):
     less = []
     equal = []
     greater = []
+    #print(block)
 
-    if len(arr) > 1:
-        pivot = arr[len(arr) // 2]
-        for x in arr:
-            if x["time"] < pivot["time"]:
-                less.append(x)
-            elif x["time"] == pivot["time"]:
-                equal.append(x)
-            elif x["time"] > pivot["time"]:
-                greater.append(x)
+    if len(block) > 1:
+        pivot = block[len(block) // 2]
+        for trans in block:
+            #print(trans)
+            if trans["time"] < pivot["time"]:
+                less.append(trans)
+            elif trans["time"] == pivot["time"]:
+                equal.append(trans)
+            elif trans["time"] > pivot["time"]:
+                greater.append(trans)
         return quick_sort_block(less) + equal + quick_sort_block(greater)
     else:
-        return arr
+        return list(block)
 
 
-class BigList:  # to prevent running out of memory access different parts of the list at a time
+class SmartBlock:
+    def __init__(self, block: list, block_num:int, paths:list):
+        self.block = block
+        self.block_num = block_num
+        self.paths = paths
+
+    def __getitem__(self, item):
+        return self.block[item]
+
+    def __setitem__(self, key, value):
+        self.block[key] = value
+        SmartChain()[self.block_num] = self.block
+
+    def append(self, trans):
+        self.block.append(trans)
+        SmartChain()[self.block_num] = self.block
+        return self.block
+
+    def pop(self, index):
+        return self.block.pop(index)
+
+    def insert(self, index, val):
+        return self.block.insert(index, val)
+
+    def __next__(self):
+        for trans in self.block:
+            yield trans
+
+    def __len__(self):
+        return len(self.block)
+
+    def __repr__(self):
+        return str(self.block)
+
+    #def __list__(self):
+
+class SmartChain:  # to prevent running out of memory access different parts of the list at a time
     def __init__(self):
         self.paths = [f"{os.path.dirname(__file__)}/info/blockchain/" + file_path for file_path in
                       os.listdir(os.path.dirname(__file__) + "/info/blockchain/")]
@@ -64,17 +102,17 @@ class BigList:  # to prevent running out of memory access different parts of the
             block_index = index - (file_num * 10000)
             with open(self.paths[file_num], "r") as file:
                 chunk = json.load(file)
-            return chunk[block_index]
+            return SmartBlock(chunk[block_index], index, self.paths)
 
         else:
             with open(self.paths[-1], "r") as file:
                 chunk = json.load(file)
             if len(chunk) > 1:
-                return chunk[index]
+                return SmartBlock(chunk[index], index, self.paths)
             else:
-                with open(self.paths[-2], "r") as file:
+                with open(self.paths[-2], "r") as file: # you never have to go back than 1 or 2 blocks using -index
                     chunk = json.load(file)
-                return chunk[index + 1]
+                return SmartBlock(chunk[index + 1], index, self.paths)
 
     def __len__(self, files=False):
         with open(self.paths[-1], "r") as file:
@@ -116,7 +154,6 @@ class BigList:  # to prevent running out of memory access different parts of the
                 with open(self.paths[-2], "w") as file:
                     json.dump(chunk, file)
 
-
     def append(self, block):
         with open(self.paths[-1], "r") as file:
             chunk = json.load(file)
@@ -143,7 +180,7 @@ class BigList:  # to prevent running out of memory access different parts of the
 class Blockchain:
 
     def __init__(self):
-        self.chain = BigList()
+        self.chain = SmartChain()
 
     def __repr__(self):
         return str(self.chain)  # .replace("]", "]\n")
@@ -153,7 +190,6 @@ class Blockchain:
 
     def __len__(self):
         return len(self.chain)
-
 
     def __bool__(self):
         print("The Blockchain never lies")
@@ -173,8 +209,8 @@ class Blockchain:
 
     def block_sort(self, block):
         sort = copy.copy(block)
-        block_head = [sort.pop(0)]
-        return block_head + quick_sort_block(sort)
+        block_head = sort.pop(0)
+        return [block_head] + quick_sort_block(sort)
 
     def all_transactions(self, address: str):
         transactions = []
@@ -241,7 +277,7 @@ class Blockchain:
     # @jit(nopython=True)
     def wallet_value(self, wallet_address, block_index=None):
         value = 0.0
-        cur_index = 0 # this has to ber done as self.chain[:block_index + 1] doesn't work with BigList class
+        cur_index = 0  # this has to ber done as self.chain[:block_index + 1] doesn't work with BigList class
         for block in self.chain:
             if block_index == cur_index:
                 break
@@ -319,8 +355,8 @@ class Blockchain:
 
                         self.chain[-2][-3] = [self.hash_block(temp_block), trans["time"]]
                         self.chain[-1][0] = [self.hash_block(temp_block)]
-                        self.chain[-2][-2][0] += (trans["amount"] * 0.01)
-                        self.chain[-2][-1][1] = trans["time"]
+                        self.chain[-2][-2] = [self.chain[-2][-2][0] + (trans["amount"] * 0.01)]  # += not work
+                        self.chain[-2][-1] = [False, trans["time"]]  # block cant be true yet
                         print("--ADDED TO PREVIOUS BLOCK--")
 
             elif relative_time > 0:
@@ -339,7 +375,7 @@ class Blockchain:
             block = copy.copy(self.chain[-1])
             self.chain[-1] = self.block_sort(block)
             # self.chain[-1] = block.insert(0, self.chain[-1][0]) #  this was coded a while ago there may be a reason but idk
-            self.chain[-1].append([block_hash, b_time]) #TODO doesnt write to json file
+            self.chain[-1].append([block_hash, b_time])  # TODO doesnt write to json file
             self.chain[-1].append([trans_fees])
             self.chain[-1].append([False, b_time])
 
@@ -367,7 +403,7 @@ class Blockchain:
 
                         self.chain[-2][-3] = [self.hash_block(temp_block), announcement["time"]]
                         self.chain[-1][0] = [self.hash_block(temp_block)]
-                        self.chain[-2][-1][1] = announcement["time"]
+                        self.chain[-2][-1] = [False, announcement["time"]]
                         print("--STAKE ADDED TO PREVIOUS BLOCK--")
 
             elif relative_time > 0:  # if in current block
@@ -384,7 +420,7 @@ class Blockchain:
                         trans_fees += b_trans["amount"] * 0.01
 
             block = copy.copy(self.chain[-1])
-            self.chain[-1] = self.block_sort(self.chain[-1])
+            self.chain[-1] = self.block_sort(block)
             # self.chain[-1] = block.insert(0, self.chain[-1][0])
             self.chain[-1].append([block_hash, b_time])
             self.chain[-1].append([trans_fees])
@@ -473,7 +509,7 @@ class Blockchain:
                 pre_hashed_blocks[block_index + i].pop()
                 pre_hashed_blocks[block_index + i].pop()
                 block_hash = self.hash_block(pre_hashed_blocks[block_index + i])
-                self.chain[block_index + i][-3][0].append(block_hash)
+                self.chain[block_index + i][-3] = self.chain[block_index + i][-3][0] + [block_hash]
                 self.chain[block_index + i + 1][0] = [block_hash]
 
         if not invalid_trans_:  # TODO update liar system
@@ -611,11 +647,8 @@ if __name__ == "__main__":
     # print(CHAIN)
     # print(CHAIN.hash_block(CHAIN[-1]))
     # print(read_blockchain().send_blockchain())
-    #print(len(CHAIN))
-    CHAIN[-1][-1] = 3
-    print(CHAIN)
-    #print(CHAIN.wallet_value("6efa5bfa8a9bfebaacacf9773f830939d8cb4a2129c1a2aaafaaf549"))
-    
-    
-    
-    
+    # print(len(CHAIN))
+    #CHAIN[-1][-1] = 3
+    #print(CHAIN)
+    # print(CHAIN.wallet_value("6efa5bfa8a9bfebaacacf9773f830939d8cb4a2129c1a2aaafaaf549"))
+    print(CHAIN.block_sort(CHAIN[-1]))

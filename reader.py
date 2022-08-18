@@ -7,7 +7,7 @@ import blockchain
 def read():
     #time.sleep(20)
     print("---READER STARTED---")
-    ip = get('https://api.ipify.org').text
+    #ip = get('https://api.ipify.org').text
     while True:
         node.dist_request_reader("LEFT_OVER")  # clear strange dist messages
         node_lines = node.request_reader("NODE")

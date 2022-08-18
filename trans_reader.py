@@ -30,7 +30,7 @@ def trans_handler(line):
     if float(trans["time"]) > (time.time() - 20.0):  # was announced in the last 30 seconds
         if not float(trans["time"]) > time.time():  # not from the future
             chain.add_transaction(trans)
-            blockchain.write_blockchain(chain)
+            #blockchain.write_blockchain(chain)
 
 def AI_job_handler(line):
     line = line.split(" ")
@@ -48,7 +48,7 @@ def AI_job_handler(line):
     if job_announce["time"] > (time.time() - 20.0):  # was announced in the last 30 seconds
         if not job_announce["time"] > time.time():  # not from the future
             chain.add_protocol(job_announce)
-            blockchain.write_blockchain(chain)
+            #blockchain.write_blockchain(chain)
 
 def staking_handler(line):
     line = line.split(" ")
@@ -73,7 +73,7 @@ def staking_handler(line):
     if stake_trans["time"] > (time.time()-20.0):
         if not stake_trans["time"] > time.time():
             chain.add_protocol(stake_trans)
-            blockchain.write_blockchain(chain)
+            #blockchain.write_blockchain(chain)
 
 
 
