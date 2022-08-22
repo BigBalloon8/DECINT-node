@@ -45,6 +45,8 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
         time.sleep(2)
         with open(f"{os.path.dirname(__file__)}/info/Public_key.txt", "r") as file:
             pub_key = file.read()
+        if not pub_key:
+            pub_key = click.prompt("Public Key", type=str)
         click.echo("\nLeave Port blank to use default")
         port = click.prompt("Enter Port", default="1379")
         port = str(port)
@@ -75,6 +77,8 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
         click.echo(f"{[priv_key]}")
         with open(f"{os.path.dirname(__file__)}/info/Public_key.txt", "r") as file:
             pub_key = file.read()
+        if not pub_key:
+            pub_key = click.prompt("Public Key", type=str)
         click.echo("\nCalculating wallet value")
         val = blockchain.get_wallet_val(pub_key)
         while True:
@@ -97,6 +101,8 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
         click.echo(f"{[type(priv_key)]}")
         with open(f"{os.path.dirname(__file__)}/info/Public_key.txt", "r") as file:
             pub_key = file.read()
+            if not pub_key:
+                pub_key = click.prompt("Public Key", type=str)
         click.echo("\nCalculating amount your wallet has staked")
         val = 0.0
         with open(f"{os.path.dirname(__file__)}/info/stake_trans.json", "rb") as f:
@@ -123,6 +129,8 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
         priv_key = click.prompt("Private Key", type=str)
         with open(f"{os.path.dirname(__file__)}/info/Public_key.txt", "r") as file:
             pub_key = file.read()
+        if not pub_key:
+            pub_key = click.prompt("Public Key", type=str)
         receiver_key = click.prompt("Receiver Public Key", type=str)
         click.echo("\nCalculating wallet value")
         val = blockchain.get_wallet_val(pub_key)

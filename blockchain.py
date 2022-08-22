@@ -1,6 +1,8 @@
 import itertools
 import hashlib
 import ast
+import traceback
+
 from ecdsa import SigningKey, VerifyingKey, SECP112r2
 import node
 from ecdsa.util import randrange_from_seed__trytryagain
@@ -96,63 +98,72 @@ class SmartChain:  # to prevent running out of memory access different parts of 
                       os.listdir(os.path.dirname(__file__) + "/info/blockchain/")]
         # TODO have most recent chunk not have to be opened every time (store in memory as list)
 
+    def read_chunk(self, index): #problem with 2 threads reading file at the same time
+        while True:
+            try:
+                with open(self.paths[index], "r") as file:
+                    return json.load(file)
+            except json.decoder.JSONDecodeError:
+                pass
+
+    def write_chunk(self, index, chunk):
+        while True:
+            try:
+                with open(self.paths[index], "w") as file:
+                    return json.dump(chunk, file)
+            except json.decoder.JSONDecodeError: # not sure if this is hte correct acception check later
+                pass
+
     def __getitem__(self, index):
         if index >= 0:
             file_num = index // 10000
             block_index = index - (file_num * 10000)
-            with open(self.paths[file_num], "r") as file:
-                chunk = json.load(file)
+            chunk = self.read_chunk(file_num)
             return SmartBlock(chunk[block_index], index, self.paths)
 
         else:
-            with open(self.paths[-1], "r") as file:
-                chunk = json.load(file)
+            chunk = self.read_chunk(-1)
             if len(chunk) > 1:
                 return SmartBlock(chunk[index], index, self.paths)
-            else:
-                with open(self.paths[-2], "r") as file: # you never have to go back than 1 or 2 blocks using -index
-                    chunk = json.load(file)
+            else:  # you never have to go back than 1 or 2 blocks using -index
+                chunk = self.read_chunk(-2)
                 return SmartBlock(chunk[index + 1], index, self.paths)
 
     def __len__(self, files=False):
-        with open(self.paths[-1], "r") as file:
-            chunk = json.load(file)
+        chunk = self.read_chunk(-1)
         return ((len(self.paths) - 1) * 10000) + len(chunk)
 
     def __next__(self):
+        path_index = 0
         for path in self.paths:
-            with open(path, "r") as file:
-                chunk = json.load(file)
+            chunk = self.read_chunk(path_index)
             for block in chunk:
                 yield block
+            path_index +=1
 
+    """
     def __repr__(self):
         chain = "["
         for path in self.paths:
             with open(path, "r") as file:
                 chain = chain + str(json.load(file))[1:-1] + ","
         return chain + "]"
+    """
 
     def __setitem__(self, key, value):
         if key >= 0:
-            with open(self.paths[key // 10000], "r") as file:
-                chunk = json.load(file)
+            chunk = self.read_chunk(key // 10000)
             chunk[key - ((key // 10000) * 10000)] = value
-            with open(self.paths[key // 10000], "w") as file:
-                json.dump(chunk, file)
+            self.write_chunk(key//10000, chunk)
         else:
-            with open(self.paths[-1], "r") as file:
-                chunk = json.load(file)
+            chunk = self.read_chunk(-1)
             if len(chunk) > 1:
                 chunk[key] = value
-                with open(self.paths[-1], "w") as file:
-                    json.dump(chunk, file)
+                self.write_chunk(-1, chunk)
             else:
-                with open(self.paths[-2], "r") as file:
-                    chunk = json.load(file)
+                chunk = self.read_chunk(-2)
                 chunk[key + 1] = value
-                with open(self.paths[-2], "w") as file:
-                    json.dump(chunk, file)
+                self.write_chunk(-2 , chunk)
 
     def append(self, block):
         with open(self.paths[-1], "r") as file:
@@ -481,7 +492,7 @@ class Blockchain:
         for bhash in self.chain[block_index][-3]:
             if isinstance(bhash, str):
                 # TODO figure out how to include validation time to ony return one node
-                validators + validator.rb(block_hash=bhash, block_time=self.chain[-3][1], invalid=True)
+                validators + validator.rb(block_hash=bhash, block_time=self.chain[-3][1], invalid=True) #hmmmmm not sure
         for node_ in nodes:
             if node_["ip"] == ip:
                 if node_ in validators:
@@ -522,36 +533,45 @@ class Blockchain:
 
     def block_valid(self, block_index: int, public_key: str, time_of_validation: float):
         # check if is actual validator
-        nodes = []
-        stake_trans = []
-        for block_hash in self.chain[block_index][-3]:
-            if isinstance(block_hash, str):
-                val_node = validator.rb(block_hash, self.chain[block_index][-3][1], time_of_validation)
-                nodes.append(val_node)
-        for ran_node in nodes:
-            if ran_node["pub_key"] == public_key:
-                correct_validation = self.validate(block_index, validating=False)
-                if correct_validation:
-                    if not self.chain[-1][0]:
-                        self.chain[block_index][-1] = [True, time_of_validation, public_key]
+        try:
+            nodes = []
+            stake_trans = []
+            for block_hash in self.chain[block_index][-3]:
+                if isinstance(block_hash, str):
+                    val_node = validator.rb(block_hash, self.chain[block_index][-3][1], time_of_validation)
+                    nodes += val_node[0]
+            #print(f"VALIDATOR NODES: {nodes}")
+            print(f"VALIDATOR NODES: {nodes}")
+            for ran_node in nodes:
+                if ran_node["pub_key"] == public_key:
+                    print("CHECKING CORRECT VALIDATION")
+                    correct_validation = self.validate(block_index,time_of_validation ,validating=False)
+                    if correct_validation:
+                        print("CORRECT VALIDATION")
+                        if not self.chain[block_index][-1][0]:
+                            self.chain[block_index][-1] = [True, time_of_validation, public_key]
 
-                        for trans in self.chain[block_index]:
-                            if isinstance(trans, dict):
-                                if "stake_amount" in trans or "unstake_amount" in trans:
-                                    stake_trans.append(trans)
-                        with open(f"{os.path.dirname(__file__)}/info/stake_trans.json", "r") as f:
-                            stake_transactions = json.load(f)
-                        stake_transactions = stake_transactions + stake_trans
-                        with open(f"{os.path.dirname(__file__)}/info/stake_trans.json", "w") as f:
-                            json.dump(stake_transactions, f)
+                            for trans in self.chain[block_index]:
+                                if isinstance(trans, dict):
+                                    if "stake_amount" in trans or "unstake_amount" in trans:
+                                        stake_trans.append(trans)
+                            with open(f"{os.path.dirname(__file__)}/info/stake_trans.json", "r") as f:
+                                stake_transactions = json.load(f)
+                            stake_transactions = stake_transactions + stake_trans
+                            with open(f"{os.path.dirname(__file__)}/info/stake_trans.json", "w") as f:
+                                json.dump(stake_transactions, f)
 
-                else:
-                    stake_removal = f"LIAR {ran_node['pub_key']} {ran_node['ip']}"
-                    with open(f"{os.path.dirname(__file__)}/info/stake_trans.json", "r") as file:
-                        stake_trans = json.load(file)
-                    stake_trans.append(stake_removal)
-                    with open(f"{os.path.dirname(__file__)}/info/stake_trans.json", "w") as file:
-                        json.dump(file)
+                    else:
+                        print("LIAR WAS FOUND")
+                        stake_removal = f"LIAR {ran_node['pub_key']} {ran_node['ip']}"
+                        with open(f"{os.path.dirname(__file__)}/info/stake_trans.json", "r") as file:
+                            stake_trans = json.load(file)
+                        stake_trans.append(stake_removal)
+                        with open(f"{os.path.dirname(__file__)}/info/stake_trans.json", "w") as file:
+                            json.dump(file)
+        except:
+            while True:
+                traceback.print_exc()
 
     def return_blockchain(self, chunk):
         return self.chain.return_chunk(chunk)
@@ -571,8 +591,9 @@ def validate_blockchain(block_index, ip, time_):
     with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
         nodes = json.load(file)
     for node_ in nodes:
-        if node_[1] == ip:
-            wallet = node_[2]
+        if node_["ip"] == ip:
+            wallet = node_["pub_key"]
+            print("CHECKING IF BLOCK IS VALID")
             chain.block_valid(block_index, wallet, time_)
             break
 
