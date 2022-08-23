@@ -150,6 +150,8 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
         node.get_nodes_no_blockchain()
         install_decint.test_install()
         receive.terminate()
+        time.sleep(0.01)
+        boot.run()
 
     elif d2_install:
         with open(f"{os.path.dirname(__file__)}/info/Public_key.txt", "w") as file:
@@ -164,6 +166,10 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
 
 
     elif test_trans:
+        receive = Process(target=receiver.rec)
+        receive.start()
+        node.get_nodes_no_blockchain()
+        receive.terminate()
         blockchain.tester()
 
     elif run_node:

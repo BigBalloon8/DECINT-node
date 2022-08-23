@@ -17,7 +17,7 @@ def trans_handler(line):
     trans = {"time": float(line[2]), "sender": line[3], "receiver": line[4], "amount": float(line[5]), "sig": line[6]}
     trans_no_sig = copy.copy(trans)
     trans_no_sig.pop("sig")  # left with trans without sig
-    trans_no_sig = " ".join(list(trans_no_sig.values()))
+    trans_no_sig = " ".join(map(str, list(trans_no_sig.values())))
     public_key = VerifyingKey.from_string(bytes.fromhex(trans["sender"]), curve=SECP112r2)
     if not public_key.verify(bytes.fromhex(trans["sig"]), trans_no_sig.encode()):
         return

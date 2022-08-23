@@ -2,14 +2,14 @@ import itertools
 import hashlib
 import ast
 import traceback
-
+import functools
 from ecdsa import SigningKey, VerifyingKey, SECP112r2
 import node
 from ecdsa.util import randrange_from_seed__trytryagain
 import os
 import validator
 import copy
-# from numba import jit
+from numba import jit
 import time
 import random
 import json
@@ -39,12 +39,12 @@ def quick_sort_block(block):
     less = []
     equal = []
     greater = []
-    #print(block)
+    # print(block)
 
     if len(block) > 1:
         pivot = block[len(block) // 2]
         for trans in block:
-            #print(trans)
+            # print(trans)
             if trans["time"] < pivot["time"]:
                 less.append(trans)
             elif trans["time"] == pivot["time"]:
@@ -57,7 +57,7 @@ def quick_sort_block(block):
 
 
 class SmartBlock:
-    def __init__(self, block: list, block_num:int, paths:list):
+    def __init__(self, block: list, block_num: int, paths: list):
         self.block = block
         self.block_num = block_num
         self.paths = paths
@@ -90,7 +90,8 @@ class SmartBlock:
     def __repr__(self):
         return str(self.block)
 
-    #def __list__(self):
+    # def __list__(self):
+
 
 class SmartChain:  # to prevent running out of memory access different parts of the list at a time
     def __init__(self):
@@ -98,7 +99,7 @@ class SmartChain:  # to prevent running out of memory access different parts of 
                       os.listdir(os.path.dirname(__file__) + "/info/blockchain/")]
         # TODO have most recent chunk not have to be opened every time (store in memory as list)
 
-    def read_chunk(self, index): #problem with 2 threads reading file at the same time
+    def read_chunk(self, index):  # problem with 2 threads reading file at the same time
         while True:
             try:
                 with open(self.paths[index], "r") as file:
@@ -111,7 +112,7 @@ class SmartChain:  # to prevent running out of memory access different parts of 
             try:
                 with open(self.paths[index], "w") as file:
                     return json.dump(chunk, file)
-            except json.decoder.JSONDecodeError: # not sure if this is hte correct acception check later
+            except json.decoder.JSONDecodeError:  # not sure if this is hte correct acception check later
                 pass
 
     def __getitem__(self, index):
@@ -139,7 +140,7 @@ class SmartChain:  # to prevent running out of memory access different parts of 
             chunk = self.read_chunk(path_index)
             for block in chunk:
                 yield block
-            path_index +=1
+            path_index += 1
 
     """
     def __repr__(self):
@@ -154,7 +155,7 @@ class SmartChain:  # to prevent running out of memory access different parts of 
         if key >= 0:
             chunk = self.read_chunk(key // 10000)
             chunk[key - ((key // 10000) * 10000)] = value
-            self.write_chunk(key//10000, chunk)
+            self.write_chunk(key // 10000, chunk)
         else:
             chunk = self.read_chunk(-1)
             if len(chunk) > 1:
@@ -163,7 +164,7 @@ class SmartChain:  # to prevent running out of memory access different parts of 
             else:
                 chunk = self.read_chunk(-2)
                 chunk[key + 1] = value
-                self.write_chunk(-2 , chunk)
+                self.write_chunk(-2, chunk)
 
     def append(self, block):
         with open(self.paths[-1], "r") as file:
@@ -286,6 +287,50 @@ class Blockchain:
         return True
 
     # @jit(nopython=True)
+    def reducable_trans_value(self, total, trans, wallet_address, block_status):  # runs per block
+
+        # print(wallet_address)
+        if not isinstance(trans, dict):  # TODO add AI reward system
+            return total
+        if "amount" in trans:
+            if trans["sender"] == wallet_address:
+                return total - trans["amount"]
+            if trans["receiver"] == wallet_address:
+                if block_status:
+                    return total + (trans["amount"] * 0.99)
+            else:
+                return total
+        elif "stake_amount" in trans and trans["pub_key"] == wallet_address:
+            return total - trans["stake_amount"]
+        elif "unstake_amount" in trans and trans["pub_key"] == wallet_address:
+            if block_status:
+                return total + trans["unstake_amount"]
+        else:
+            return total
+
+    def reducable_block_value(self, total, block, wallet, upto):
+        block_status = False
+        print(block)
+        block_index = block[0]
+        block = block[1]
+        if upto:
+            if upto >= block_index:
+                return total
+        if len(block) > 3:
+            if isinstance(block[-1], list):
+                if block[-1][0]:
+                    block_status = True
+                    if block[-1][2] == wallet:
+                        total += block[-2][0]
+
+        return total + functools.reduce(
+            functools.partial(self.reducable_trans_value, wallet_address=wallet, block_status=block_status), block, 0.0)
+
+    def new_wallet_value(self, wallet_address, block_index=None):  # potentially better have to test
+        return functools.reduce(functools.partial(self.reducable_block_value, wallet=wallet_address, upto=block_index),
+                                enumerate(self.chain), 0.0)
+
+    #@jit()
     def wallet_value(self, wallet_address, block_index=None):
         value = 0.0
         cur_index = 0  # this has to ber done as self.chain[:block_index + 1] doesn't work with BigList class
@@ -348,6 +393,8 @@ class Blockchain:
         return value
 
     def add_transaction(self, trans: dict):
+        if len(self.chain[-1]) == 1:
+            time.sleep(0.01)# give time for new block to load
         relative_time = int(float(trans["time"]) - float(self.chain[-1][1]["time"]))
         prev_relative_time = int(float(trans["time"]) - float(self.chain[-2][1]["time"]))
         # prev_relative_time = 10000
@@ -386,7 +433,7 @@ class Blockchain:
             block = copy.copy(self.chain[-1])
             self.chain[-1] = self.block_sort(block)
             # self.chain[-1] = block.insert(0, self.chain[-1][0]) #  this was coded a while ago there may be a reason but idk
-            self.chain[-1].append([block_hash, b_time])  # TODO doesnt write to json file
+            self.chain[-1].append([block_hash, b_time])
             self.chain[-1].append([trans_fees])
             self.chain[-1].append([False, b_time])
 
@@ -480,6 +527,7 @@ class Blockchain:
 
         if validating:
             node.send_to_dist("VALID " + str(block_index) + " " + str(time_of_validation))
+            time.sleep(5)  # stop sending multiple VALIDs to dist node
 
         if not validating:
             return True
@@ -492,7 +540,8 @@ class Blockchain:
         for bhash in self.chain[block_index][-3]:
             if isinstance(bhash, str):
                 # TODO figure out how to include validation time to ony return one node
-                validators + validator.rb(block_hash=bhash, block_time=self.chain[-3][1], invalid=True) #hmmmmm not sure
+                validators + validator.rb(block_hash=bhash, block_time=self.chain[-3][1],
+                                          invalid=True)  # hmmmmm not sure
         for node_ in nodes:
             if node_["ip"] == ip:
                 if node_ in validators:
@@ -540,12 +589,12 @@ class Blockchain:
                 if isinstance(block_hash, str):
                     val_node = validator.rb(block_hash, self.chain[block_index][-3][1], time_of_validation)
                     nodes += val_node[0]
-            #print(f"VALIDATOR NODES: {nodes}")
+            # print(f"VALIDATOR NODES: {nodes}")
             print(f"VALIDATOR NODES: {nodes}")
             for ran_node in nodes:
                 if ran_node["pub_key"] == public_key:
                     print("CHECKING CORRECT VALIDATION")
-                    correct_validation = self.validate(block_index,time_of_validation ,validating=False)
+                    correct_validation = self.validate(block_index, time_of_validation, validating=False)
                     if correct_validation:
                         print("CORRECT VALIDATION")
                         if not self.chain[block_index][-1][0]:
@@ -637,10 +686,11 @@ def key_tester():
 
 def tester():
     for _ in range(1000):
-        main_prv = os.environ["PUB_KEY"]
+        main_prv = os.environ["PRIV_KEY"]
         main_pub = os.environ["PUB_KEY"]
         time.sleep(1)
         path1 = bool(random.randint(0, 1))
+        open(f"{os.path.dirname(__file__)}/testing_keys.txt", "w+").close()
         if path1:
             priv, hex_priv = priv_key_gen()
             pub, hex_pub = pub_key_gen(priv)
@@ -648,12 +698,12 @@ def tester():
             with open(f"{os.path.dirname(__file__)}/testing_keys.txt", "a") as file:
                 file.write(f"{hex_priv} {hex_pub} {amount}\n")
             trans = transaction(main_prv, hex_pub, amount)
-            node.send_to_dist(f"TRANS {trans[0]} {trans[1]} {trans[2]} {trans[3]} {trans[4]}")
+            node.send_to_dist(f"TRANS {' '.join(trans)}")
         else:
             with open(f"{os.path.dirname(__file__)}/testing_keys.txt", "r") as file:
-                test_keys = file.read().split("\n")
+                test_keys = file.read().splitlines()
             wallet = random.choices(test_keys)
-            wallet = wallet.split(" ")
+            wallet = wallet[0].split(" ")
             trans = transaction(wallet[0], main_pub, 25.0)
             node.send_to_dist(f"TRANS {' '.join(trans)}")
 
@@ -669,7 +719,9 @@ if __name__ == "__main__":
     # print(CHAIN.hash_block(CHAIN[-1]))
     # print(read_blockchain().send_blockchain())
     # print(len(CHAIN))
-    #CHAIN[-1][-1] = 3
-    #print(CHAIN)
-    # print(CHAIN.wallet_value("6efa5bfa8a9bfebaacacf9773f830939d8cb4a2129c1a2aaafaaf549"))
-    print(CHAIN.block_sort(CHAIN[-1]))
+    # CHAIN[-1][-1] = 3
+    # print(CHAIN)
+    start = timer()
+    print(CHAIN.wallet_value("6efa5bfa8a9bfebaacacf9773f830939d8cb4a2129c1a2aaafaaf549"))
+    print(timer() - start)
+    # print(CHAIN.block_sort(CHAIN[-1]))
