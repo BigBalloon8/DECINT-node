@@ -685,26 +685,27 @@ def key_tester():
 
 
 def tester():
+    main_prv = input("PRIV: ")
     for _ in range(1000):
-        main_prv = os.environ["PRIV_KEY"]
-        main_pub = os.environ["PUB_KEY"]
+        #main_pub = os.environ["PUB_KEY"]
         time.sleep(1)
-        path1 = bool(random.randint(0, 1))
+        path1 = True #bool(random.randint(0, 1))
         open(f"{os.path.dirname(__file__)}/testing_keys.txt", "w+").close()
         if path1:
             priv, hex_priv = priv_key_gen()
             pub, hex_pub = pub_key_gen(priv)
-            amount = random.randint(100, 1000)
+            amount = float(random.randint(100, 1000))
             with open(f"{os.path.dirname(__file__)}/testing_keys.txt", "a") as file:
                 file.write(f"{hex_priv} {hex_pub} {amount}\n")
             trans = transaction(main_prv, hex_pub, amount)
             node.send_to_dist(f"TRANS {' '.join(trans)}")
         else:
+            continue
             with open(f"{os.path.dirname(__file__)}/testing_keys.txt", "r") as file:
                 test_keys = file.read().splitlines()
             wallet = random.choices(test_keys)
             wallet = wallet[0].split(" ")
-            trans = transaction(wallet[0], main_pub, 25.0)
+            trans = transaction(wallet[0], hex(12), 25.0)
             node.send_to_dist(f"TRANS {' '.join(trans)}")
 
 

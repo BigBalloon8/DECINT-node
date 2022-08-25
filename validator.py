@@ -25,11 +25,20 @@ def rb(block_hash, block_time, time_validation=time.time(), invalid=False):
     the random node is calculated using a seed
     the seed used is the hash of the block. this gives all nodes the same node that will be its validator
     """
-    with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
-        nodes = json.load(file)
-
-    with open(f"{os.path.dirname(__file__)}/info/stake_trans.json", "r") as file:
-        stake_transactions = json.load(file)
+    while True:
+        try:
+            with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
+                nodes = json.load(file)
+            break
+        except json.decoder.JSONDecodeError:
+            pass
+    while True:
+        try:
+            with open(f"{os.path.dirname(__file__)}/info/stake_trans.json", "r") as file:
+                stake_transactions = json.load(file)
+            break
+        except json.decoder.JSONDecodeError:
+            pass
 
     node_weights = []  # random biased
     for node in nodes:
@@ -61,12 +70,16 @@ def rb(block_hash, block_time, time_validation=time.time(), invalid=False):
     if number_of_misses > 100000:
         print(number_of_misses)
         number_of_misses = 0
+    print("num misses: ", number_of_misses)
+    if number_of_misses < 0:
+        number_of_misses = 0
     rand_node = random.choices(nodes, weights=node_weights, k=(number_of_misses + 1))
     if not isinstance(rand_node, list):
         rand_node = [rand_node]
     if not invalid:
         return rand_node , time_validation
-    return rand_node[-1], time_validation
+    else:
+        return rand_node[-1], time_validation
 
 
 def am_i_validator():
@@ -76,7 +89,7 @@ def am_i_validator():
     # This problem with the current iteration is that it checks to see if valid blocks are valid or not. it may be
      possible to store a list of unvalid blocks in a json file
     """
-    time.sleep(4)
+    # time.sleep(4)
     try:
         print("---VALIDATOR STARTED---")
         with open(f"{os.path.dirname(__file__)}/info/Public_key.txt", "r") as file:
@@ -85,9 +98,9 @@ def am_i_validator():
             chain = blockchain.read_blockchain()
             block_index = 0
             for block in chain:  # not efficient as you are checking validated blocks
-                if len(block) < 3:
+                if len(block) <= 3:
                     continue
-                if isinstance(block[-3], list):
+                if isinstance(block[-3], list) and block[0] != block[-3]:
                     if not block[-1][0]:
                         print(f"Block {block_index} is not valid")
                         if (time.time() - float(block[-3][1])) > 30.0:
