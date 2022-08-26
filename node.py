@@ -47,21 +47,20 @@ def send(host, message, port=1379, send_all=False):
         client.connect((host, port))
         client.send(message.encode("utf-8"))
         print(f"Message to {host} {message}\n")
-        return
     except ConnectionRefusedError:
-        if not send_all:
-            try:
-                with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
-                    nodes = json.load(file)
-                for node in nodes:
-                    if node["ip"] == host:
-                        if not int(node["port"]) == 1379:
-                            client.connect((host, int(node["port"])))
-                            client.send(message.encode("utf-8"))
-                            # print(f"Message to {host} {message}\n")
-                            return
-            except ConnectionRefusedError:
-                return "node offline"
+        if send_all:
+            return
+        try:
+            with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
+                nodes = json.load(file)
+            for node in nodes:
+                if node["ip"] == host:
+                    if not int(node["port"]) == 1379:
+                        client.connect((host, int(node["port"])))
+                        client.send(message.encode("utf-8"))
+                        # print(f"Message to {host} {message}\n")
+        except ConnectionRefusedError:
+            return "node offline"
 
 
 async def async_send(host, message, port=1379, send_all=False):
@@ -75,7 +74,6 @@ async def async_send(host, message, port=1379, send_all=False):
         client.connect((host, port))
         client.send(message.encode("utf-8"))
         print(f"Message to {host} {message}\n")
-        return
     except ConnectionError:
         if not send_all:
             try:
@@ -87,7 +85,6 @@ async def async_send(host, message, port=1379, send_all=False):
                             client.connect((host, int(node["port"])))
                             client.send(message.encode("utf-8"))
                             print(f"Message to {host} {message}\n")
-                            return
             except ConnectionError:
                 return "node offline"
 
@@ -115,7 +112,7 @@ def send_to_dist(message):
     with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
         all_nodes = json.load(file)
     dist_nodes = []
-    for d_node in all_nodes:
+    for d_node in all_nodes: #TODO save dist nodes to seperate file
         if d_node["node_type"] == "dist":
             dist_nodes.append(d_node)
     d_node = random.choice(dist_nodes)
@@ -735,8 +732,8 @@ def message_handler(message):
             raise UnrecognisedArg("Signature is the wrong size")
 
     elif protocol == "VALID":
-        # host, VALID , block index, time of validation
-        if len(message) != 4:
+        # host, VALID , block index, time of validation, block
+        if len(message) != 5:
             raise UnrecognisedArg("number of args given incorrect")
 
         if not check_int(message[2]):
@@ -744,6 +741,11 @@ def message_handler(message):
 
         if not check_float(message[3]):
             raise ValueTypeError("time not given as float")
+
+        try:
+            ast.literal_eval(message[4])
+        except:
+            raise ValueTypeError("BLock is not given as block")
 
     elif protocol == "TRANS_INVALID":
         # host, TRANS_INVALID, Block Index, Transaction invalid

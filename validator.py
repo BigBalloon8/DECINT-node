@@ -100,8 +100,9 @@ def am_i_validator():
             for block in chain:  # not efficient as you are checking validated blocks
                 if len(block) <= 3:
                     continue
-                if isinstance(block[-3], list) and block[0] != block[-3]:
-                    if (not block[-1][0]) and chain[block_index][-1][0]:
+                if isinstance(block[-3], list):  # and block[0] != block[-3]: not sure what this is meant to prevent
+                    #print("block has lists")
+                    if (not block[-1][0]) and chain[block_index-1][-1][0]:
                         print(f"Block {block_index} is not valid")
                         if (time.time() - float(block[-3][1])) > 30.0:
                             block_time = block[1]["time"]
@@ -119,3 +120,4 @@ def am_i_validator():
             traceback.print_exc()
 if __name__ == '__main__':
     print(rb("c547877025c260fa5cad96072a16b51c85a99c01cc15058781a7a301ea5edcab", 1802.0))
+    am_i_validator()

@@ -91,6 +91,9 @@ class SmartBlock:
     def __repr__(self):
         return str(self.block)
 
+    def __str__(self):
+        return str(self.block)
+
     # def __list__(self):
 
 
@@ -497,11 +500,11 @@ class Blockchain:
             self.chain.append(new_block)
             print("--NEW BLOCK--")
 
-    def validate(self, block_index: int, time_of_validation: float, validating: bool = True , block = None):
+    def validate(self, block_index: int, time_of_validation: float, validating: bool = True, block=None):
         # TODO check block hash is the same as other nodes?
         # SEND transactions to other nodes
         valid_trans = []
-        if block ==None:
+        if block is None:
             block = self.chain[block_index]
 
         positions = [0,-1,-2,-3]
@@ -576,7 +579,7 @@ class Blockchain:
                     valid_trans.append([total])
                 elif len(trans) == 2: #if block hash
                     b_hash = self.hash_block(valid_trans)
-                    b_time = block[-2][1]
+                    b_time = block[-3][1]
                     if not validating:
                         if b_hash != block_index:
                             return False
