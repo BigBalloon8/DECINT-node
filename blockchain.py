@@ -14,6 +14,7 @@ import time
 import random
 import json
 from timeit import default_timer as timer
+import math
 
 
 def priv_key_gen():
@@ -236,6 +237,14 @@ class Blockchain:
                     print(trans)
         return transactions
 
+    def get_block_reward(self, block_index):
+        total = 0.0
+        for trans in self.chain[block_index]:
+            if isinstance(trans, dict):
+                if "amount" in trans:
+                    total += trans["amount"]*0.01
+        return round(total,8)
+
     @property
     def transaction_total(self):
         total = 0.0
@@ -297,7 +306,7 @@ class Blockchain:
                 return total - trans["amount"]
             if trans["receiver"] == wallet_address:
                 if block_status:
-                    return total + (trans["amount"] * 0.99)
+                    return total + round(trans["amount"] * 0.99, 8)
             else:
                 return total
         elif "stake_amount" in trans and trans["pub_key"] == wallet_address:
@@ -346,7 +355,7 @@ class Blockchain:
                         if trans["receiver"] == wallet_address:
                             if isinstance(block[-1], list):
                                 if block[-1][0]:  # don't add trans amount to value if block not valid
-                                    value += (float(trans["amount"]) * 0.99)
+                                    value += round(trans["amount"] * 0.99, 8)
                                     continue
                     elif "stake_amount" in trans and trans["pub_key"] == wallet_address:
                         value -= trans["stake_amount"]
@@ -413,7 +422,7 @@ class Blockchain:
 
                         self.chain[-2][-3] = [self.hash_block(temp_block), trans["time"]]
                         self.chain[-1][0] = [self.hash_block(temp_block)]
-                        self.chain[-2][-2] = [self.chain[-2][-2][0] + (trans["amount"] * 0.01)]  # += not work
+                        self.chain[-2][-2] = [self.chain[-2][-2][0] + round(trans["amount"] * 0.01, 8)]  # += not work
                         self.chain[-2][-1] = [False, trans["time"]]  # block cant be true yet
                         print("--ADDED TO PREVIOUS BLOCK--")
 
@@ -428,7 +437,7 @@ class Blockchain:
             for b_trans in self.chain[-1]:
                 if isinstance(b_trans, dict):
                     if "amount" in b_trans:
-                        trans_fees += b_trans["amount"] * 0.01
+                        trans_fees += round(b_trans["amount"] * 0.01,8)
 
             block = copy.copy(self.chain[-1])
             self.chain[-1] = self.block_sort(block)
@@ -475,7 +484,7 @@ class Blockchain:
             for b_trans in self.chain[-1]:
                 if isinstance(b_trans, dict):
                     if "amount" in b_trans:
-                        trans_fees += b_trans["amount"] * 0.01
+                        trans_fees += round(b_trans["amount"] * 0.01,8)
 
             block = copy.copy(self.chain[-1])
             self.chain[-1] = self.block_sort(block)
@@ -488,45 +497,95 @@ class Blockchain:
             self.chain.append(new_block)
             print("--NEW BLOCK--")
 
-    def validate(self, block_index: int, time_of_validation: float, validating: bool = True):
-        trans_index = 0
+    def validate(self, block_index: int, time_of_validation: float, validating: bool = True , block = None):
         # TODO check block hash is the same as other nodes?
-        for trans in self.chain[block_index]:
-            if isinstance(trans, dict):
-                if "amount" in trans:
-                    if self.wallet_value(trans["sender"], block_index=block_index) < trans["amount"]:
-                        if validating:
-                            message = f"TRANS_INVALID {block_index} {trans_index}"
-                            node.send_to_dist(message)
-                            # self.invalid_trans(block_index, trans_index)
+        # SEND transactions to other nodes
+        valid_trans = []
+        if block ==None:
+            block = self.chain[block_index]
 
+        positions = [0,-1,-2,-3]
+        for i in positions:
+            if not isinstance(block[i], list):
+                if not validating:
+                    return False
+
+        for trans in block:
+            if isinstance(trans, dict):
+                if trans["time"] < self.chain[block_index-1][-3][1]:
+                    if not validating:
+                        return False
+                    else:
+                        continue
+                if trans["time"] - block[1]["time"] > 900:
+                    if not validating:
+                        return False
+                    else:
+                        continue
+
+
+                if "amount" in trans:
+                    if self.wallet_value(trans["sender"], block_index=block_index) > trans["amount"] > 0.0:
+                        if validating:
+                            valid_trans.append(trans)
+                        else:
+                            trans_no_sig = copy.copy(trans)
+                            trans_no_sig.pop("sig")  # left with trans without sig
+                            trans_no_sig = " ".join(map(str, list(trans_no_sig.values())))
+                            public_key = VerifyingKey.from_string(bytes.fromhex(trans["sender"]), curve=SECP112r2)
+                            if not public_key.verify(bytes.fromhex(trans["sig"]), trans_no_sig.encode()):
+                                return False
+                    else:
                         if not validating:
                             return False
 
                 if "stake_amount" in trans:
-                    if self.wallet_value(trans["pub_key"], block_index=block_index) < float(trans["stake_amount"]):
+                    if self.wallet_value(trans["pub_key"], block_index=block_index) > trans["stake_amount"] > 0.0:
                         if validating:
-                            message = f"TRANS_INVALID {block_index} {trans_index}"
-                            node.send_to_dist(message)
-                            # self.invalid_trans(block_index, trans_index)
-
+                            valid_trans.append(trans)
+                        else:
+                            public_key = VerifyingKey.from_string(bytes.fromhex(trans["pub_key"]), curve=SECP112r2)
+                            if not public_key.verify(bytes.fromhex(trans["sig"]), str(trans["time"]).encode()):
+                                return False
+                    else:
                         if not validating:
                             return False
 
                 if "unstake_amount" in trans:
-                    if self.get_stake_value(trans["pub_key"], block_index=block_index) < float(trans["unstake_amount"]):
+                    if self.get_stake_value(trans["pub_key"], block_index=block_index) > trans["unstake_amount"] > 0.0:
                         if validating:
-                            message = f"TRANS_INVALID {block_index} {trans_index}"
-                            node.send_to_dist(message)
-                            # self.invalid_trans(block_index, trans_index)
+                            valid_trans.append(trans)
+                        else:
+                            public_key = VerifyingKey.from_string(bytes.fromhex(trans["pub_key"]), curve=SECP112r2)
+                            if not public_key.verify(bytes.fromhex(trans["sig"]), str(trans["time"]).encode()):
+                                return False
 
+                    else:
                         if not validating:
                             return False
-
-            trans_index += 1
+                        
+            elif isinstance(trans, list):
+                if isinstance(trans[0], int):  # if is the reward amount list
+                    total = 0.0
+                    for i in valid_trans:
+                        if isinstance(i, dict) and "amount" in i:
+                            total += round(i["amount"]*0.01, 8)
+                    if not validating:
+                        if total != block[-2][0]:
+                            return False
+                    valid_trans.append([total])
+                elif len(trans) == 2: #if block hash
+                    b_hash = self.hash_block(valid_trans)
+                    b_time = block[-2][1]
+                    if not validating:
+                        if b_hash != block_index:
+                            return False
+                    valid_trans.append([b_hash, b_time])
+                else:
+                    valid_trans.append(trans)
 
         if validating:
-            node.send_to_dist("VALID " + str(block_index) + " " + str(time_of_validation))
+            node.send_to_dist(f"VALID {str(block_index)} {str(time_of_validation)} {str(valid_trans).replace(' ','')}")
             time.sleep(5)  # stop sending multiple VALIDs to dist node
 
         if not validating:
@@ -580,26 +639,27 @@ class Blockchain:
             with open(f"{os.path.dirname(__file__)}/info/stake_trans.json", "w") as file:
                 json.dump(file)
 
-    def block_valid(self, block_index: int, public_key: str, time_of_validation: float):
+    def block_valid(self, block_index: int, public_key: str, time_of_validation: float, block):
         # check if is actual validator
         try:
             nodes = []
             stake_trans = []
-            for block_hash in self.chain[block_index][-3]:
+            for block_hash in self.chain[block_index][0]:
                 if isinstance(block_hash, str):
-                    val_node = validator.rb(block_hash, self.chain[block_index][-3][1], time_of_validation)
+                    val_node = validator.rb(block_hash, self.chain[block_index][1]["time"], time_of_validation)
                     nodes += val_node[0]
             # print(f"VALIDATOR NODES: {nodes}")
             print(f"VALIDATOR NODES: {nodes}")
             for ran_node in nodes:
                 if ran_node["pub_key"] == public_key:
                     print("CHECKING CORRECT VALIDATION")
-                    correct_validation = self.validate(block_index, time_of_validation, validating=False)
+                    correct_validation = self.validate(block_index, time_of_validation, validating=False, block=block)
                     if correct_validation:
                         print("CORRECT VALIDATION")
                         if not self.chain[block_index][-1][0]:
+                            self.chain[block_index] = block
                             self.chain[block_index][-1] = [True, time_of_validation, public_key]
-
+                            self.chain[block_index+1][0] = [self.chain[block_index][-3][0]]
                             for trans in self.chain[block_index]:
                                 if isinstance(trans, dict):
                                     if "stake_amount" in trans or "unstake_amount" in trans:
@@ -635,15 +695,16 @@ def read_nodes():
         return json.load(file)
 
 
-def validate_blockchain(block_index, ip, time_):
+def validate_blockchain(block_index, ip, time_, block):
     chain = read_blockchain()
     with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
         nodes = json.load(file)
+    block = ast.literal_eval(block)
     for node_ in nodes:
         if node_["ip"] == ip:
             wallet = node_["pub_key"]
             print("CHECKING IF BLOCK IS VALID")
-            chain.block_valid(block_index, wallet, time_)
+            chain.block_valid(block_index, wallet, time_, block)
             break
 
 
@@ -686,7 +747,7 @@ def key_tester():
 
 def tester():
     main_prv = input("PRIV: ")
-    for _ in range(1000):
+    for _ in range(100000):
         #main_pub = os.environ["PUB_KEY"]
         time.sleep(1)
         path1 = True #bool(random.randint(0, 1))
