@@ -22,6 +22,7 @@ def receive():
     message is split into array the first value the type of message the second value is the message
     """
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    #server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) #UDP
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server.bind(("", 1379))
     server.listen()
@@ -42,7 +43,8 @@ def send(host, message, port=1379, send_all=False):
     tries the default port and if it doesn't work search for actual port
     this process is skipped if send to all for speed
     """
-    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM) #TCP
+    #client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) #UDP
     try:
         client.connect((host, port))
         client.send(message.encode("utf-8"))
@@ -70,6 +72,8 @@ async def async_send(host, message, port=1379, send_all=False):
     this process is skipped if send to all for speed
     """
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    #client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) #UDP
+
     try:
         client.connect((host, port))
         client.send(message.encode("utf-8"))
