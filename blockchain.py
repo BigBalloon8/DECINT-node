@@ -511,17 +511,23 @@ class Blockchain:
         for i in positions:
             if not isinstance(block[i], list):
                 if not validating:
+                    while True:
+                        print("not list")
                     return False
 
         for trans in block:
             if isinstance(trans, dict):
                 if trans["time"] < self.chain[block_index-1][-3][1]:
                     if not validating:
+                        while True:
+                            print("not correct time")
                         return False
                     else:
                         continue
                 if trans["time"] - block[1]["time"] > 900:
                     if not validating:
+                        while True:
+                            print("not correct time")
                         return False
                     else:
                         continue
@@ -532,14 +538,19 @@ class Blockchain:
                         if validating:
                             valid_trans.append(trans)
                         else:
+                            valid_trans.append(trans)
                             trans_no_sig = copy.copy(trans)
                             trans_no_sig.pop("sig")  # left with trans without sig
                             trans_no_sig = " ".join(map(str, list(trans_no_sig.values())))
                             public_key = VerifyingKey.from_string(bytes.fromhex(trans["sender"]), curve=SECP112r2)
                             if not public_key.verify(bytes.fromhex(trans["sig"]), trans_no_sig.encode()):
+                                while True:
+                                    print("not correct sig")
                                 return False
                     else:
                         if not validating:
+                            while True:
+                                print("not enough funds")
                             return False
 
                 if "stake_amount" in trans:
@@ -547,11 +558,16 @@ class Blockchain:
                         if validating:
                             valid_trans.append(trans)
                         else:
+                            valid_trans.append(trans)
                             public_key = VerifyingKey.from_string(bytes.fromhex(trans["pub_key"]), curve=SECP112r2)
                             if not public_key.verify(bytes.fromhex(trans["sig"]), str(trans["time"]).encode()):
+                                while True:
+                                    print("sig wrong")
                                 return False
                     else:
                         if not validating:
+                            while True:
+                                print("not enough funds")
                             return False
 
                 if "unstake_amount" in trans:
@@ -559,29 +575,41 @@ class Blockchain:
                         if validating:
                             valid_trans.append(trans)
                         else:
+                            valid_trans.append(trans) # optimise
                             public_key = VerifyingKey.from_string(bytes.fromhex(trans["pub_key"]), curve=SECP112r2)
                             if not public_key.verify(bytes.fromhex(trans["sig"]), str(trans["time"]).encode()):
+                                while True:
+                                    print("sigs wrong")
                                 return False
 
                     else:
                         if not validating:
+                            while True:
+                                print("not enough funds")
                             return False
                         
             elif isinstance(trans, list):
-                if isinstance(trans[0], int):  # if is the reward amount list
+                if isinstance(trans[0], float) and len(trans) == 1:  # if is the reward amount list
                     total = 0.0
                     for i in valid_trans:
                         if isinstance(i, dict) and "amount" in i:
                             total += round(i["amount"]*0.01, 8)
                     if not validating:
                         if total != block[-2][0]:
+                            while True:
+                                print("wrong reward given")
                             return False
                     valid_trans.append([total])
-                elif len(trans) == 2: #if block hash
+                elif isinstance(trans[0], str) and len(trans) == 2:  # if block hash
                     b_hash = self.hash_block(valid_trans)
+                    print("valid_trans: ",valid_trans)
                     b_time = block[-3][1]
                     if not validating:
-                        if b_hash != block_index:
+                        if b_hash != trans[0]:
+                            while True:
+                                print(b_hash)
+                                print(trans)
+                                print("wrong block hash")
                             return False
                     valid_trans.append([b_hash, b_time])
                 else:
@@ -680,7 +708,7 @@ class Blockchain:
                             stake_trans = json.load(file)
                         stake_trans.append(stake_removal)
                         with open(f"{os.path.dirname(__file__)}/info/stake_trans.json", "w") as file:
-                            json.dump(file)
+                            json.dump(stake_trans, file)
         except:
             while True:
                 traceback.print_exc()
