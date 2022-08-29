@@ -29,7 +29,7 @@ def receive():
     while True:
         try:
             client, address = server.accept()
-            message = client.recv(2^20).decode("utf-8")  # .split(" ")
+            message = client.recv(2**16).decode("utf-8")  # .split(" ")
             server.close()
             return message, address
         except Exception as e:
@@ -45,10 +45,17 @@ def send(host, message, port=1379, send_all=False):
     """
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM) #TCP
     #client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) #UDP
+    message_size = len(message)
     try:
         client.connect((host, port))
-        client.send(message.encode("utf-8"))
-        print(f"Message to {host} {message}\n")
+        if message_size < 20000:
+            client.send(message.encode("utf-8"))
+            print(f"Message to {host} {message}\n")
+        else:
+            messages = [message[i:i+20000] for i in range(0,message_size, 10000)]
+            for message in messages:
+                client.send(message.encode("utf-8"))
+                time.sleep(0.1)
     except ConnectionRefusedError:
         if send_all:
             return
@@ -59,7 +66,14 @@ def send(host, message, port=1379, send_all=False):
                 if node["ip"] == host:
                     if not int(node["port"]) == 1379:
                         client.connect((host, int(node["port"])))
-                        client.send(message.encode("utf-8"))
+                        if message_size < 20000:
+                            client.send(message.encode("utf-8"))
+                            print(f"Message to {host} {message}\n")
+                        else:
+                            messages = [message[i:i + 20000] for i in range(0, message_size, 10000)]
+                            for message in messages:
+                                client.send(message.encode("utf-8"))
+                                time.sleep(0.1)
                         # print(f"Message to {host} {message}\n")
         except ConnectionRefusedError:
             return "node offline"
@@ -73,11 +87,17 @@ async def async_send(host, message, port=1379, send_all=False):
     """
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     #client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) #UDP
-
+    message_size = len(message)
     try:
         client.connect((host, port))
-        client.send(message.encode("utf-8"))
-        print(f"Message to {host} {message}\n")
+        if message_size < 20000:
+            client.send(message.encode("utf-8"))
+            print(f"Message to {host} {message}\n")
+        else:
+            messages = [message[i:i + 20000] for i in range(0, message_size, 10000)]
+            for message in messages:
+                client.send(message.encode("utf-8"))
+                time.sleep(0.1)
     except ConnectionError:
         if not send_all:
             try:
@@ -87,8 +107,14 @@ async def async_send(host, message, port=1379, send_all=False):
                     if node[1] == host:
                         if not int(node["port"]) == 1379:
                             client.connect((host, int(node["port"])))
-                            client.send(message.encode("utf-8"))
-                            print(f"Message to {host} {message}\n")
+                            if message_size < 20000:
+                                client.send(message.encode("utf-8"))
+                                print(f"Message to {host} {message}\n")
+                            else:
+                                messages = [message[i:i + 20000] for i in range(0, message_size, 10000)]
+                                for message in messages:
+                                    client.send(message.encode("utf-8"))
+                                    time.sleep(0.1)
             except ConnectionError:
                 return "node offline"
 
@@ -169,7 +195,7 @@ def dist_request_reader(type_="TRANS"):
         print("type_ == ", type_)
 
     trans_protocols = ["TRANS", "STAKE", "UNSTAKE", "AI_JOB_ANNOUNCE"]
-    blockchain_protocols = ["VALID", "TRANS_INVALID"]
+    blockchain_protocols = ["TRANS_INVALID"]
 
     trans_lines = []
     blockchain_lines = []
@@ -299,7 +325,13 @@ def request_reader(type_, ip="192.168.68.1"):
                 breq_lines.append(" ".join(line))
 
             else:
-                node_lines.append(" ".join(line))
+                try:
+                    ast.literal_eval(line[4])
+                    node_lines.append(" ".join(line))
+                except ValueError:
+                    node_lines.append(" ".join(line))
+                except SyntaxError:
+                    pass
 
         # TODO make a fucntion to clear to stop copy paste of the file clear
         if type_ == "YH":

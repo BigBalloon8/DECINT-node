@@ -1,3 +1,4 @@
+import asyncio
 import itertools
 import hashlib
 import ast
@@ -57,7 +58,7 @@ def quick_sort_block(block):
         return list(block)
 
 
-class SmartBlock:
+class SmartBlock(object):
     def __init__(self, block: list, block_num: int, paths: list):
         self.block = block
         self.block_num = block_num
@@ -97,7 +98,7 @@ class SmartBlock:
     # def __list__(self):
 
 
-class SmartChain:  # to prevent running out of memory access different parts of the list at a time
+class SmartChain(object):  # to prevent running out of memory access different parts of the list at a time
     def __init__(self):
         self.paths = [f"{os.path.dirname(__file__)}/info/blockchain/" + file_path for file_path in
                       os.listdir(os.path.dirname(__file__) + "/info/blockchain/")]
@@ -616,7 +617,7 @@ class Blockchain:
                     valid_trans.append(trans)
 
         if validating:
-            node.send_to_dist(f"VALID {str(block_index)} {str(time_of_validation)} {str(valid_trans).replace(' ','')}")
+            asyncio.run(node.send_to_all(f"VALID {str(block_index)} {str(time_of_validation)} {str(valid_trans).replace(' ','')}"))
             time.sleep(5)  # stop sending multiple VALIDs to dist node
 
         if not validating:

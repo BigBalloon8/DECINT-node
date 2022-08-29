@@ -37,6 +37,10 @@ def read():
                         print("DELETE")
                         node.delete_node(float(message[2]), message[0], message[3], message[4])
 
+                    if message[1] == "VALID":  # update block to true
+                        print("VALID")
+                        blockchain.validate_blockchain(int(message[2]), message[0], float(message[3]), message[4])
+
                     else:
                         pass
 
@@ -52,11 +56,7 @@ def read():
                         print(message[1], e)
                         continue
 
-                    if message[1] == "VALID":  # update block to true
-                        print("VALID")
-                        blockchain.validate_blockchain(int(message[2]), message[0], float(message[3]), message[4])
-
-                    elif message[1] == "TRANS_INVALID":
+                    if message[1] == "TRANS_INVALID":
                         print("TRANS_INVALID")
                         blockchain.invalid_blockchain(int(message[2]), int(message[3]), message[0])
     except:
