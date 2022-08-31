@@ -14,7 +14,10 @@ def write_line(message, address):
                 lines = []
                 for line in file.read().split("\n"):
                     if "VALID" in line or "BREQ" in line: #TODO this is temporary needs to define between valid and breq
-                        lines.append(line + message)
+                        if "]]" in message:
+                            lines.append(line + message + "\n")
+                        else:
+                            lines.append(line + message)
                     else:
                         lines.append(line)
             with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "w") as file:
@@ -33,6 +36,7 @@ def rec():
         print(f"Message from {address} , {message}\n")
         thread = Thread(target=write_line, args=(message, address,))
         thread.start()
+        continue
             
 
 

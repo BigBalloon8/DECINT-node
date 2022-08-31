@@ -63,14 +63,14 @@ def rb(block_hash, block_time, time_validation=time.time(), invalid=False):
         #amount_staked = math.floor(amount_staked)
         node_weights.append(amount_staked)
 
-    print(node_weights)
+    #print(node_weights)
     random.seed(hash_num(block_hash))
     time_since_complete = time_validation - block_time
     number_of_misses = int(time_since_complete//300)
     if number_of_misses > 100000:
-        print(number_of_misses)
+        #print(number_of_misses)
         number_of_misses = 0
-    print("num misses: ", number_of_misses)
+    #print("num misses: ", number_of_misses)
     if number_of_misses < 0:
         number_of_misses = 0
     rand_node = random.choices(nodes, weights=node_weights, k=(number_of_misses + 1))
@@ -103,12 +103,11 @@ def am_i_validator():
                 if isinstance(block[-3], list):  # and block[0] != block[-3]: not sure what this is meant to prevent
                     #print("block has lists")
                     if (not block[-1][0]) and chain[block_index-1][-1][0]:
-                        print(f"Block {block_index} is not valid")
+                        #print(f"Block {block_index} is not valid")
                         if (time.time() - float(block[-3][1])) > 30.0:
                             block_time = block[1]["time"]
                             block_hash = block[0][0]
                             nodes, time_of_valid = rb(block_hash, block_time)
-                            print("RB node: ", nodes)
                             for node in nodes:
                                 if node["pub_key"] == my_pub:
                                     print(f"I AM VALIDATOR, B{block_index}")

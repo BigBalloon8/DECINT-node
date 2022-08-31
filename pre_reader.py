@@ -30,6 +30,7 @@ def read():
                 elif message[1] == "BLOCKCHAIN?":
                     #print("BLOCKCHAIN?")
                     chain = blockchain.read_blockchain()
+                    #TODO be able to send large chunks
                     node.send(message[0], "BREQ " + str(chain.return_blockchain(int(message[2]))).replace(" ", ""))
 
                 elif message[1] == "BLOCKCHAINLEN?":

@@ -597,8 +597,7 @@ class Blockchain:
                             total += round(i["amount"]*0.01, 8)
                     if not validating:
                         if total != block[-2][0]:
-                            while True:
-                                print("wrong reward given")
+                            print("wrong reward given")
                             return False
                     valid_trans.append([total])
                 elif isinstance(trans[0], str) and len(trans) == 2:  # if block hash
@@ -616,8 +615,18 @@ class Blockchain:
                 else:
                     valid_trans.append(trans)
 
-        if validating:
-            asyncio.run(node.send_to_all(f"VALID {str(block_index)} {str(time_of_validation)} {str(valid_trans).replace(' ','')}"))
+        if validating: #TODO give same treatment to BREQ
+            message = f"VALID {str(block_index)} {str(time_of_validation)} {str(valid_trans).replace(' ','')}"
+            message_len = len(message)
+            if message_len < 10000:
+                asyncio.run(node.send_to_all(message))
+            else:
+                messages = [message[i:i + 10000] for i in range(0, message_len, 10000)]
+                for message_ in messages:
+                    asyncio.run(node.send_to_all(message_))
+                    time.sleep(0.5)
+
+
             time.sleep(5)  # stop sending multiple VALIDs to dist node
 
         if not validating:

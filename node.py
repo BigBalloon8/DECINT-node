@@ -45,17 +45,10 @@ def send(host, message, port=1379, send_all=False):
     """
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM) #TCP
     #client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) #UDP
-    message_size = len(message)
     try:
         client.connect((host, port))
-        if message_size < 20000:
-            client.send(message.encode("utf-8"))
-            print(f"Message to {host} {message}\n")
-        else:
-            messages = [message[i:i+20000] for i in range(0,message_size, 10000)]
-            for message in messages:
-                client.send(message.encode("utf-8"))
-                time.sleep(0.1)
+        client.sendall(message.encode("utf-8"))
+        print(f"Message to {host} {message}\n")
     except ConnectionRefusedError:
         if send_all:
             return
@@ -66,14 +59,8 @@ def send(host, message, port=1379, send_all=False):
                 if node["ip"] == host:
                     if not int(node["port"]) == 1379:
                         client.connect((host, int(node["port"])))
-                        if message_size < 20000:
-                            client.send(message.encode("utf-8"))
-                            print(f"Message to {host} {message}\n")
-                        else:
-                            messages = [message[i:i + 20000] for i in range(0, message_size, 10000)]
-                            for message in messages:
-                                client.send(message.encode("utf-8"))
-                                time.sleep(0.1)
+                        client.sendall(message.encode("utf-8"))
+                        print(f"Message to {host} {message}\n")
                         # print(f"Message to {host} {message}\n")
         except ConnectionRefusedError:
             return "node offline"
@@ -90,14 +77,8 @@ async def async_send(host, message, port=1379, send_all=False):
     message_size = len(message)
     try:
         client.connect((host, port))
-        if message_size < 20000:
-            client.send(message.encode("utf-8"))
-            print(f"Message to {host} {message}\n")
-        else:
-            messages = [message[i:i + 20000] for i in range(0, message_size, 10000)]
-            for message in messages:
-                client.send(message.encode("utf-8"))
-                time.sleep(0.1)
+        client.sendall(message.encode("utf-8"))
+        print(f"Message to {host} {message}\n")
     except ConnectionError:
         if not send_all:
             try:
@@ -107,14 +88,8 @@ async def async_send(host, message, port=1379, send_all=False):
                     if node[1] == host:
                         if not int(node["port"]) == 1379:
                             client.connect((host, int(node["port"])))
-                            if message_size < 20000:
-                                client.send(message.encode("utf-8"))
-                                print(f"Message to {host} {message}\n")
-                            else:
-                                messages = [message[i:i + 20000] for i in range(0, message_size, 10000)]
-                                for message in messages:
-                                    client.send(message.encode("utf-8"))
-                                    time.sleep(0.1)
+                            client.sendall(message.encode("utf-8"))
+                            print(f"Message to {host} {message}\n")
             except ConnectionError:
                 return "node offline"
 
@@ -330,6 +305,8 @@ def request_reader(type_, ip="192.168.68.1"):
                     node_lines.append(" ".join(line))
                 except ValueError:
                     node_lines.append(" ".join(line))
+                except IndexError:
+                    node_lines.append(" ".join(line))
                 except SyntaxError:
                     pass
 
@@ -421,9 +398,9 @@ async def send_to_all(message):
     """
     with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
         all_nodes = json.load(file)
-    for f in asyncio.as_completed(
+    for _ in asyncio.as_completed(
             [async_send(node["ip"], message, port=node["port"], send_all=True) for node in all_nodes]):
-        result = await f
+        result = await _
 
 
 def announce(pub_key, port, version, node_type, priv_key):
@@ -781,8 +758,10 @@ def message_handler(message):
 
         try:
             ast.literal_eval(message[4])
-        except:
+        except SyntaxError:
             raise ValueTypeError("BLock is not given as block")
+        except IndexError or ValueError:
+            pass
 
     elif protocol == "TRANS_INVALID":
         # host, TRANS_INVALID, Block Index, Transaction invalid
