@@ -94,6 +94,7 @@ def am_i_validator():
         print("---VALIDATOR STARTED---")
         with open(f"{os.path.dirname(__file__)}/info/Public_key.txt", "r") as file:
             my_pub = file.read()
+        validated_blocks = []
         while True:
             chain = blockchain.read_blockchain()
             block_index = 0
@@ -109,10 +110,11 @@ def am_i_validator():
                             block_hash = block[0][0]
                             nodes, time_of_valid = rb(block_hash, block_time)
                             for node in nodes:
-                                if node["pub_key"] == my_pub:
+                                if node["pub_key"] == my_pub and block_index not in validated_blocks:
                                     print(f"I AM VALIDATOR, B{block_index}")
                                     chain_ = blockchain.read_blockchain()
                                     chain_.validate(block_index, time_of_valid)
+                                    validated_blocks.append(block_index)
                 block_index += 1
     except:
         while True:

@@ -625,8 +625,6 @@ class Blockchain:
                 for message_ in messages:
                     asyncio.run(node.send_to_all(message_))
                     time.sleep(0.5)
-
-
             time.sleep(5)  # stop sending multiple VALIDs to dist node
 
         if not validating:

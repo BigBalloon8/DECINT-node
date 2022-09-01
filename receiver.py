@@ -13,16 +13,13 @@ def write_line(message, address):
             with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "r") as file:
                 lines = []
                 for line in file.read().split("\n"):
-                    if "VALID" in line or "BREQ" in line: #TODO this is temporary needs to define between valid and breq
-                        if "]]" in message:
-                            lines.append(line + message + "\n")
-                        else:
-                            lines.append(line + message)
+                    if ("VALID" in line and "]]" not in line) or ("BREQ" in line and ("]]]" not in line or "}]]"not in line)): #TODO this is temporary needs to define between valid and breq
+                        lines.append(line + message)
                     else:
                         lines.append(line)
             with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "w") as file:
                 print("writing lines")
-                file.writelines(lines)
+                file.write("\n".join(lines) + "\n")
         else:
             with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "a+") as file:
                 file.write(f"{address[0]} {message}\n")
