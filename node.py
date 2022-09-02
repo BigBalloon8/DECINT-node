@@ -56,7 +56,6 @@ def write_line(message, address):
                         lines.append(line)
             open(f"{os.path.dirname(__file__)}/recent_messages.txt", "w").close()
             with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "a+") as file:
-                print("writing lines")
                 for line in lines:
                     file.write(line + "\n")
         else:
@@ -88,7 +87,6 @@ def send(host, message, port=1379, send_all=False):
                         client.connect((host, int(node["port"])))
                         client.sendall(message.encode("utf-8"))
                         print(f"Message to {host} {message}\n")
-                        # print(f"Message to {host} {message}\n")
         except ConnectionRefusedError:
             return "node offline"
     client.close()
@@ -128,14 +126,12 @@ def online(address):
     """
     asks if a node is online and if it is it returns yh
     """
-    print(address)
     # socket.setdefaulttimeout(1.0)
     try:
         send(address, "ONLINE?")
         return True
-    except Exception as e:
+    except Exception: #TODO be more specific
         # socket.setdefaulttimeout(3.0)
-        print(e)
         return False
 
 
@@ -195,8 +191,6 @@ def dist_request_reader(type_="TRANS"):
     with open(f"{os.path.dirname(__file__)}/dist_messages.txt", "r") as file:
         lines = file.read().splitlines()
     dist_nodes = [node_ for node_ in nodes if node_["node_type"] == "dist"]
-    if lines:
-        print("type_ == ", type_)
 
     trans_protocols = ["TRANS", "STAKE", "UNSTAKE", "AI_JOB_ANNOUNCE"]
     blockchain_protocols = ["TRANS_INVALID"]
@@ -211,12 +205,11 @@ def dist_request_reader(type_="TRANS"):
 
     for line in lines:
         message = line.split(" ")
-        print("dist lines: ", line)
+        #print("dist lines: ", line)
         dist_node = False
         for node_ in dist_nodes:
             if node_["ip"] == message[0]:
                 dist_node = True
-                print("TRUE")
                 break
 
         if dist_node:
@@ -227,7 +220,6 @@ def dist_request_reader(type_="TRANS"):
                 lines.remove(" ".join(message))
 
             elif message[1] in trans_protocols:
-                print("added to trans")
                 trans_lines.append(line)
                 trans_messages.append(" ".join(message))
 
@@ -256,11 +248,6 @@ def dist_request_reader(type_="TRANS"):
             return blockchain_messages
 
         if type_ == "TRANS":
-            print("TRANS")
-            print("---")
-            print(trans_messages)
-            print(trans_lines)
-            print("---")
             if len(trans_lines) != 0:
                 new_lines = []
                 with open(f"{os.path.dirname(__file__)}/dist_messages.txt", "r") as file:
@@ -432,8 +419,13 @@ async def send_to_all(message):
     """
     sends to all nodes
     """
-    with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
-        all_nodes = json.load(file)
+    while True:
+        try:
+            with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
+                all_nodes = json.load(file)
+                break
+        except json.decoder.JSONDecodeError:
+            pass
     for _ in asyncio.as_completed(
             [async_send(node["ip"], message, port=node["port"], send_all=True) for node in all_nodes]):
         result = await _
@@ -485,14 +477,14 @@ def unstake(priv_key, amount):
 
 def updator():  # send ask the website for Blockchain as most up to date
     # TODO add stake updator
-    node = rand_act_node(type_="Blockchain")
+    node = rand_act_node()
     print("---GETTING NODES---")
     time.sleep(0.1)
     send(node["ip"], "GET_NODES")
     tries = 0
     while True:
         if tries == 10:
-            quit()
+            quit() #quit(python ask to retry)
         time.sleep(2)
         lines = request_reader("NREQ")
         if lines:
@@ -514,7 +506,7 @@ def updator():  # send ask the website for Blockchain as most up to date
 
 
 def get_blockchain_len():
-    node = rand_act_node()
+    node = rand_act_node(type_="Blockchain")
     time.sleep(1)
     send(node["ip"], "BLOCKCHAINLEN?")
     time.sleep(1)
@@ -538,7 +530,7 @@ def get_blockchain_no_nodes():
         return
     print("len1 == len2")
     for i in range(len1+1):
-        node = rand_act_node()
+        node = rand_act_node(type_="Blockchain")
         time.sleep(1)
         send(node["ip"], f"BLOCKCHAIN? {i}")
         tries = 0
@@ -546,7 +538,7 @@ def get_blockchain_no_nodes():
             if tries == 10:
                 get_blockchain_no_nodes()
                 return
-            time.sleep(5)
+            time.sleep(2)
             lines = request_reader("BREQ")
             if lines:
                 line = lines[0].split(" ")
@@ -558,7 +550,7 @@ def get_blockchain_no_nodes():
                 tries += 1
         time.sleep(1)
 
-        node = rand_act_node()
+        node = rand_act_node(type_="Blockchain")
         time.sleep(0.1)
         send(node["ip"], f"BLOCKCHAIN? {i}")
         tries = 0

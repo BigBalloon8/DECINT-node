@@ -1,6 +1,5 @@
 import os
 import node
-import receiver
 import reader
 import trans_reader
 import validator

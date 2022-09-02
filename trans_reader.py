@@ -59,7 +59,6 @@ def staking_handler(line):
     #print(bytes.fromhex(stake_trans["pub_key"]))
     public_key = VerifyingKey.from_string(bytes.fromhex(stake_trans["pub_key"]), curve=SECP112r2)
     if not public_key.verify(bytes.fromhex(stake_trans["sig"]), str(stake_trans["time"]).encode()):
-        print("sig invalid")
         return
     chain = blockchain.read_blockchain()
     if stake_trans in chain[-1] or stake_trans in chain[-2]:

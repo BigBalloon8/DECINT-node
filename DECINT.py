@@ -8,7 +8,6 @@ from ecdsa import SigningKey, VerifyingKey, SECP112r2
 import boot
 import os
 import threading
-import receiver
 from multiprocessing import Process
 
 
@@ -26,7 +25,7 @@ from multiprocessing import Process
 def run(install, update, delete, stake, unstake, trans, run_node, test_install, d2_install, test_trans):
 
     if install:
-        receive = Process(target=receiver.rec)
+        receive = Process(target=node.receive)
         receive.start()
         node.get_nodes_no_blockchain()
         with open(f"{os.path.dirname(__file__)}./info/Public_key.txt", "r") as file:
@@ -39,7 +38,7 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
         receive.terminate()
 
     elif update:
-        receive = Process(target=receiver.rec)
+        receive = Process(target=node.receive)
         receive.start()
         node.get_nodes_no_blockchain()
         click.echo("In order to update your Node please enter a bit of information")
@@ -59,7 +58,7 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
         receive.terminate()
 
     elif delete:
-        receive = Process(target=receiver.rec)
+        receive = Process(target=node.receive)
         receive.start()
         node.get_nodes_no_blockchain()
         click.echo("In order to delete your Node please enter a bit of information")
@@ -71,7 +70,7 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
         receive.terminate()
 
     elif stake:
-        receive = Process(target=receiver.rec)
+        receive = Process(target=node.receive)
         receive.start()
         node.get_nodes_no_blockchain()
         priv_key = click.prompt("Private Key", type=str)
@@ -95,7 +94,7 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
         receive.terminate()
 
     elif unstake:
-        receive = Process(target=receiver.rec)
+        receive = Process(target=node.receive)
         receive.start()
         node.get_nodes_no_blockchain()
         priv_key = input("Private Key: ")
@@ -124,7 +123,7 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
         receive.terminate()
 
     elif trans:
-        receive = Process(target=receiver.rec)
+        receive = Process(target=node.receive)
         receive.start()
         node.get_nodes_no_blockchain()
         priv_key = click.prompt("Private Key", type=str)
@@ -146,7 +145,7 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
         receive.terminate()
 
     elif test_install:
-        receive = Process(target=receiver.rec)
+        receive = Process(target=node.receive)
         receive.start()
         node.get_nodes_no_blockchain()
         install_decint.test_install()
@@ -167,7 +166,7 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
 
 
     elif test_trans:
-        receive = Process(target=receiver.rec)
+        receive = Process(target=node.receive)
         receive.start()
         node.get_nodes_no_blockchain()
         receive.terminate()

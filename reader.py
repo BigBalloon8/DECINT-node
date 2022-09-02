@@ -45,8 +45,6 @@ def read():
                         pass
 
             if dist_blockchain_lines:
-                if dist_blockchain_lines:
-                    print(f"BDIST LINES: {dist_blockchain_lines}")
                 for message in dist_blockchain_lines:
                     message = message.split(" ")
                     try:

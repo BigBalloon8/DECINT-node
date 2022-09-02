@@ -185,13 +185,11 @@ class SmartChain(object):  # to prevent running out of memory access different p
                 json.dump(chunk + [block], file)
 
     def update(self, chunk_num, chunk):
-        with open(self.paths[chunk_num], "w") as file:
-            json.dump(chunk, file)
+        self.write_chunk(chunk_num, chunk)
 
     def return_chunk(self, chunk_num):
-        with open(self.paths[chunk_num], "r") as file:
-            chunk = json.load(file)
-        print(chunk)
+        chunk = self.read_chunk(chunk_num)
+        #print(chunk)
         return chunk
 
 
@@ -271,7 +269,10 @@ class Blockchain:
                     index += 1
                     continue
                 else:
-                    shortened_new_chunk1 = new_chunk1[:-index]
+                    if index: #if not 0
+                        shortened_new_chunk1 = new_chunk1[:-index]
+                    else:
+                        shortened_new_chunk1 = new_chunk1
                     break
             else:
                 index += 1
