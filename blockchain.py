@@ -16,6 +16,7 @@ import random
 import json
 from timeit import default_timer as timer
 import math
+import textwrap
 
 
 def priv_key_gen():
@@ -618,10 +619,10 @@ class Blockchain:
         if validating: #TODO give same treatment to BREQ
             message = f"VALID {str(block_index)} {str(time_of_validation)} {str(valid_trans).replace(' ','')}"
             message_len = len(message)
-            if message_len < 10000:
+            if message_len < 5000:
                 asyncio.run(node.send_to_all(message))
             else:
-                messages = [message[i:i + 10000] for i in range(0, message_len, 10000)]
+                messages = textwrap.wrap(message, 5000)
                 for message_ in messages:
                     asyncio.run(node.send_to_all(message_))
                     time.sleep(0.5)
@@ -786,7 +787,8 @@ def key_tester():
 
 def tester():
     main_prv = input("PRIV: ")
-    for _ in range(100000):
+    start_time = time.time()
+    for _ in range(900):
         #main_pub = os.environ["PUB_KEY"]
         time.sleep(1)
         path1 = True #bool(random.randint(0, 1))
@@ -799,6 +801,7 @@ def tester():
                 file.write(f"{hex_priv} {hex_pub} {amount}\n")
             trans = transaction(main_prv, hex_pub, amount)
             node.send_to_dist(f"TRANS {' '.join(trans)}")
+            print(time.time()-start_time)
         else:
             continue
             with open(f"{os.path.dirname(__file__)}/testing_keys.txt", "r") as file:

@@ -11,6 +11,7 @@ import threading
 import receiver
 from multiprocessing import Process
 
+
 @click.command()
 @click.option("--install", "-i", is_flag=True, help="Will Install DecInt")
 @click.option("--update", "-u", is_flag=True, help="Will send Update protocol to other nodes")

@@ -19,12 +19,14 @@ def hash_num(block_hash):
 
 
 #  @jit(nopython=True)
-def rb(block_hash, block_time, time_validation=time.time(), invalid=False):
+def rb(block_hash, block_time, time_validation=None, invalid=False):
     """
     the random biased function returns a random node based on the amount a node has stakes
     the random node is calculated using a seed
     the seed used is the hash of the block. this gives all nodes the same node that will be its validator
     """
+    if time_validation == None:
+        time_validation = time.time()
     while True:
         try:
             with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
@@ -71,8 +73,6 @@ def rb(block_hash, block_time, time_validation=time.time(), invalid=False):
         #print(number_of_misses)
         number_of_misses = 0
     #print("num misses: ", number_of_misses)
-    if number_of_misses < 0:
-        number_of_misses = 0
     rand_node = random.choices(nodes, weights=node_weights, k=(number_of_misses + 1))
     if not isinstance(rand_node, list):
         rand_node = [rand_node]

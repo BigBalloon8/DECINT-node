@@ -12,14 +12,16 @@ def write_line(message, address):
         if " " not in message and "ONLINE?" not in message and "BLOCKCHAIN?" not in message and "GET_NODES" not in message and "BLOCKCHAINLEN?" not in message:
             with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "r") as file:
                 lines = []
-                for line in file.read().split("\n"):
+                for line in file.read().splitlines():
                     if ("VALID" in line and "]]" not in line) or ("BREQ" in line and ("]]]" not in line or "}]]"not in line)): #TODO this is temporary needs to define between valid and breq
                         lines.append(line + message)
                     else:
                         lines.append(line)
-            with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "w") as file:
+            open(f"{os.path.dirname(__file__)}/recent_messages.txt", "w").close()
+            with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "a+") as file:
                 print("writing lines")
-                file.write("\n".join(lines) + "\n")
+                for line in lines:
+                    file.write(line + "\n")
         else:
             with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "a+") as file:
                 file.write(f"{address[0]} {message}\n")
