@@ -12,6 +12,7 @@ from ecdsa import SigningKey, VerifyingKey, SECP112r2
 import asyncio
 import os
 import json
+from threading import Thread
 
 __version__ = "1.0"
 
@@ -30,11 +31,37 @@ def receive():
         try:
             client, address = server.accept()
             message = client.recv(2**16).decode("utf-8")  # .split(" ")
-            server.close()
-            return message, address
+            if "\n" in message:
+                continue
+            print(f"Message from {address} , {message}\n")
+            thread = Thread(target=write_line, args=(message, address,))
+            thread.start()
+            continue
         except Exception as e:
             print(e)
 
+def write_line(message, address):
+    if "DIST" in message:
+        with open(f"{os.path.dirname(__file__)}/dist_messages.txt", "a") as file:
+            file.write(f"{address[0]} {message}\n")
+            # file.write(f"{message.replace('DIST ','')}\n")
+    else:
+        if " " not in message and "ONLINE?" not in message and "BLOCKCHAIN?" not in message and "GET_NODES" not in message and "BLOCKCHAINLEN?" not in message:
+            with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "r") as file:
+                lines = []
+                for line in file.read().splitlines():
+                    if ("VALID" in line and "]]" not in line) or ("BREQ" in line and ("]]]" not in line or "}]]"not in line)): #TODO this is temporary needs to define between valid and breq
+                        lines.append(line + message)
+                    else:
+                        lines.append(line)
+            open(f"{os.path.dirname(__file__)}/recent_messages.txt", "w").close()
+            with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "a+") as file:
+                print("writing lines")
+                for line in lines:
+                    file.write(line + "\n")
+        else:
+            with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "a+") as file:
+                file.write(f"{address[0]} {message}\n")
 
 # send to node
 def send(host, message, port=1379, send_all=False):
@@ -64,7 +91,7 @@ def send(host, message, port=1379, send_all=False):
                         # print(f"Message to {host} {message}\n")
         except ConnectionRefusedError:
             return "node offline"
-
+    client.close()
 
 async def async_send(host, message, port=1379, send_all=False):
     """
@@ -92,6 +119,8 @@ async def async_send(host, message, port=1379, send_all=False):
                             print(f"Message to {host} {message}\n")
             except ConnectionError:
                 return "node offline"
+
+    client.close()
 
 
 # check if nodes online
