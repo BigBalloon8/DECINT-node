@@ -178,6 +178,15 @@ def rand_act_node(num_nodes=1, type_=None):
     else:
         return nodes
 
+def line_remover(del_lines, file_path):
+    with open(file_path, "r") as file:
+        lines = file.readlines()
+    new_lines = [line for line in lines if line not in del_lines]
+    open(file_path, "w").close()
+    with open(file_path, "a") as file:
+        for line in new_lines:
+            file.write(line)
+
 
 def dist_request_reader(type_="TRANS"):
     while True:
@@ -193,7 +202,7 @@ def dist_request_reader(type_="TRANS"):
     dist_nodes = [node_ for node_ in nodes if node_["node_type"] == "dist"]
 
     trans_protocols = ["TRANS", "STAKE", "UNSTAKE", "AI_JOB_ANNOUNCE"]
-    blockchain_protocols = ["TRANS_INVALID"]
+    blockchain_protocols = ["TRANS_INVALID"] #TODO redo this
 
     trans_lines = []
     blockchain_lines = []
@@ -205,7 +214,17 @@ def dist_request_reader(type_="TRANS"):
 
     for line in lines:
         message = line.split(" ")
-        #print("dist lines: ", line)
+
+        try:
+            message_handler(message)
+        except NodeError as e:
+            send(message[0], f"ERROR {e}")
+            print(message[1], e)
+            left_over_lines.append(line)
+            continue
+        except NotCompleteError as e:
+            continue
+
         dist_node = False
         for node_ in dist_nodes:
             if node_["ip"] == message[0]:
@@ -216,7 +235,7 @@ def dist_request_reader(type_="TRANS"):
             message.pop(0)
             message.pop(0)
 
-            if message == "" or message == "\n":
+            if message[0] == "" or message[0] == "\n": #TODO What this doing
                 lines.remove(" ".join(message))
 
             elif message[1] in trans_protocols:
@@ -231,53 +250,20 @@ def dist_request_reader(type_="TRANS"):
                 left_over_lines.append(line)
                 blockchain_messages.append(" ".join(message))
 
-        if type_ == "BLOCKCHAIN":
-            if len(blockchain_lines) != 0:
-                new_lines = []
-                with open(f"{os.path.dirname(__file__)}/dist_messages.txt", "r") as file:
-                    file_lines = file.readlines()
-                for f_line in file_lines:
-                    f_line.split(" ")
-                    if not blockchain_lines[0] in f_line:
-                        if not f_line.strip("\n") == "":
-                            new_lines.append(f_line)
-                open(f"{os.path.dirname(__file__)}/dist_messages.txt", "w").close()
-                with open(f"{os.path.dirname(__file__)}/dist_messages.txt", "a") as file:
-                    for n_line in new_lines:
-                        file.write(n_line)
+    if type_ == "BLOCKCHAIN": #TODO redo line rewrite system
+        if len(blockchain_messages) == 0:
             return blockchain_messages
+        line_remover(blockchain_lines, f"{os.path.dirname(__file__)}/dist_messages.txt")
+        return blockchain_messages
 
-        if type_ == "TRANS":
-            if len(trans_lines) != 0:
-                new_lines = []
-                with open(f"{os.path.dirname(__file__)}/dist_messages.txt", "r") as file:
-                    file_lines = file.readlines()
-                for f_line in file_lines:
-                    f_line.split(" ")
-                    if not trans_lines[0] in f_line:
-                        if not f_line.strip("\n") == "":
-                            new_lines.append(f_line)
-                open(f"{os.path.dirname(__file__)}/dist_messages.txt", "w").close()
-                with open(f"{os.path.dirname(__file__)}/dist_messages.txt", "a") as file:
-                    for n_line in new_lines:
-                        file.write(n_line)
-            print("returned")
+    if type_ == "TRANS":
+        if len(trans_messages) == 0:
             return trans_messages
+        line_remover(trans_lines, f"{os.path.dirname(__file__)}/dist_messages.txt")
+        return trans_messages
 
-        if type_ == "LEFT_OVER":
-            if len(left_over_lines) != 0:
-                new_lines = []
-                with open(f"{os.path.dirname(__file__)}/dist_messages.txt", "r") as file:
-                    file_lines = file.readlines()
-                for f_line in file_lines:
-                    f_line.split(" ")
-                    if not left_over_lines[0] in f_line:
-                        if not f_line.strip("\n") == "":
-                            new_lines.append(f_line)
-                open(f"{os.path.dirname(__file__)}/dist_messages.txt", "w").close()
-                with open(f"{os.path.dirname(__file__)}/dist_messages.txt", "a") as file:
-                    for n_line in new_lines:
-                        file.write(n_line)
+    if type_ == "LEFT_OVER":
+        line_remover(left_over_lines, f"{os.path.dirname(__file__)}/dist_messages.txt")
 
 
 def request_reader(type_, ip="192.168.68.1"):
@@ -286,28 +272,32 @@ def request_reader(type_, ip="192.168.68.1"):
     """
     with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "r") as file:
         lines = file.read().splitlines()
-    nreq_protocol = ["NREQ"]  # node request
-    yh_protocol = ["yh"]
     breq_protocol = ["BREQ", "BLENREQ"]
     pre_protocol = ["ONLINE?", "GET_NODES", "BLOCKCHAIN?", "BLOCKCHAINLEN?"]
 
     node_lines = []
     nreq_lines = []
-    yh_lines = []
     breq_lines = []
     online_lines = []
+    del_lines = []
     if str(lines) != "[]":
         for line in lines:
             line = line.split(" ")
+            try:
+                message_handler(line)
+            except NodeError as e:
+                send(line[0], f"ERROR {e}")
+                print(line[1], e)
+                del_lines.append(" ".join(line))
+                continue
+            except NotCompleteError:
+                continue
 
             if line[0] == "" or line[0] == "\n":
                 lines.remove(" ".join(line))
 
-            elif line[1] in nreq_protocol:
+            elif line[1] == "NREQ":
                 nreq_lines.append(" ".join(line))
-
-            elif line[1] in yh_protocol and line[0] == ip:
-                yh_lines.append(" ".join(line))
 
             elif line[1] in pre_protocol:
                 online_lines.append(" ".join(line))
@@ -334,84 +324,28 @@ def request_reader(type_, ip="192.168.68.1"):
                 except SyntaxError:
                     pass
 
-        # TODO make a fucntion to clear to stop copy paste of the file clear
-        if type_ == "YH":
-            if len(yh_lines) != 0:
-                new_lines = []
-                with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "r") as file:
-                    file_lines = file.readlines()
-                for f_line in file_lines:
-                    f_line.split(" ")
-                    if not yh_lines[0] in f_line:
-                        if not f_line.strip("\n") == "":
-                            new_lines.append(f_line)
-                open(f"{os.path.dirname(__file__)}/recent_messages.txt", "w").close()
-                with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "a") as file:
-                    for n_line in new_lines:
-                        file.write(n_line)
-            return yh_lines
-
-        elif type_ == "NODE":
-            if len(node_lines) != 0:
-                new_lines = []
-                with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "r") as file:
-                    file_lines = file.readlines()
-                for f_line in file_lines:
-                    f_line.split(" ")
-                    if not node_lines[0] in f_line:
-                        if not f_line.strip("\n") == "":
-                            new_lines.append(f_line)
-                open(f"{os.path.dirname(__file__)}/recent_messages.txt", "w").close()
-                with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "a") as file:
-                    for n_line in new_lines:
-                        file.write(n_line)
+        if type_ == "NODE":
+            if len(node_lines) == 0:
+                return node_lines
+            line_remover(node_lines + del_lines, f"{os.path.dirname(__file__)}/recent_messages.txt")
             return node_lines
 
         elif type_ == "NREQ":
-            if len(nreq_lines) != 0:
-                new_lines = []
-                with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "r+") as file:
-                    file_lines = file.readlines()
-                for f_line in file_lines:
-                    f_line.split(" ")
-                    if not nreq_lines[0] in f_line:
-                        if not f_line.strip("\n") == "":
-                            new_lines.append(f_line)
-                open(f"{os.path.dirname(__file__)}/recent_messages.txt", "w").close()
-                with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "a") as file:
-                    for n_line in new_lines:
-                        file.write(n_line)
+            if len(nreq_lines) == 0:
+                return nreq_lines
+            line_remover(nreq_lines + del_lines, f"{os.path.dirname(__file__)}/recent_messages.txt")
             return nreq_lines
 
         elif type_ == "ONLINE":
-            if len(online_lines) != 0:
-                new_lines = []
-                with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "r+") as file:
-                    file_lines = file.readlines()
-                for f_line in file_lines:
-                    f_line.split(" ")
-                    if not online_lines[0] in f_line:
-                        if not f_line.strip("\n") == "":
-                            new_lines.append(f_line)
-                open(f"{os.path.dirname(__file__)}/recent_messages.txt", "w").close()
-                with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "a") as file:
-                    for n_line in new_lines:
-                        file.write(n_line)
+            if len(online_lines) == 0:
+                return online_lines
+            line_remover(online_lines + del_lines, f"{os.path.dirname(__file__)}/recent_messages.txt")
             return online_lines
 
         elif type_ == "BREQ":
-            if len(breq_lines) != 0:
-                new_lines = []
-                with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "r") as file:
-                    file_lines = file.readlines()
-                for f_line in file_lines:
-                    if not breq_lines[0] in f_line:  # update to check multiple lines to lazy to do rn
-                        if not f_line.strip("\n") == "":
-                            new_lines.append(f_line)
-                open(f"{os.path.dirname(__file__)}/recent_messages.txt", "w").close()
-                with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "a") as file:
-                    for n_line in new_lines:
-                        file.write(n_line)
+            if len(breq_lines) == 0:
+                return breq_lines
+            line_remover(breq_lines + del_lines, f"{os.path.dirname(__file__)}/recent_messages.txt")
             return breq_lines
 
 
@@ -674,6 +608,13 @@ def version_update(ip, ver):
             break
 
 
+class NotCompleteError(Exception):
+    """
+    Raised when problem with line but the line is needed to be kept in recent messages
+    """
+    pass
+
+
 class NodeError(Exception):
     pass
 
@@ -721,8 +662,7 @@ def message_handler(message):
     NREQ <ip> <nodes>
     BLOCKCHAIN? <ip>
     BREQ <ip> <blockchain>
-    VALID <ip> <block_index> <validation_time>
-    TRANS_INVALID <block_index> <transaction_index>
+    VALID <ip> <block_index> <validation_time> <block>
     TRANS <ip> <transaction_time> <sender_public_key> <recipient_public_key> <transaction_value> <signature>
     STAKE <ip> <staking_time> <public_key> <stake_value> <signature>
     UNSTAKE <ip> <unstaking_time> <public_key> <unstake_value> <signature>
@@ -732,8 +672,6 @@ def message_handler(message):
     BLENREQ <ip> <number_of_chunks>
     """
     try:
-        if isinstance(message, str):
-            message = message.split(" ")
         protocol = message[1]
     except IndexError:
         raise UnrecognisedArg("No Protocol Found")
@@ -774,7 +712,6 @@ def message_handler(message):
 
     elif protocol == "VALID":
         # host, VALID , block index, time of validation, block
-        return # just for testing
         if len(message) != 5:
             raise UnrecognisedArg("number of args given incorrect")
 
@@ -786,21 +723,10 @@ def message_handler(message):
 
         try:
             ast.literal_eval(message[4])
-        except SyntaxError:
+        except ValueError:
             raise ValueTypeError("BLock is not given as block")
-        except IndexError or ValueError:
-            pass
-
-    elif protocol == "TRANS_INVALID":
-        # host, TRANS_INVALID, Block Index, Transaction invalid
-        if len(message) != 4:
-            raise UnrecognisedArg("number of args given incorrect")
-
-        if not check_int(message[2]):
-            raise ValueTypeError("Block Index not given as int")
-
-        if not check_int(message[3]):
-            raise ValueTypeError("Transaction Index not given as int")
+        except SyntaxError:
+            raise NotCompleteError("block not complete")
 
     elif protocol == "ONLINE?":
         # host, ONLINE?
@@ -863,6 +789,8 @@ def message_handler(message):
             ast.literal_eval(message[2])
         except ValueError:
             raise ValueTypeError("Blockchain not given as Blockchain")
+        except SyntaxError:
+            raise NotCompleteError("Blockchain not complete yet")
 
     elif protocol == "NREQ":
         # host, NREQ, nodes
@@ -940,6 +868,9 @@ def message_handler(message):
 
         if not check_int(message[2]):
             raise ValueTypeError("Blockchain length not given as int")
+
+    elif len(message) == 2: #will have to be part of a large message
+        pass
 
     else:
         raise UnrecognisedCommand("protocol unrecognised")
