@@ -632,54 +632,6 @@ class Blockchain:
         if not validating:
             return True
 
-    def invalid_trans(self, block_index: int, trans_index: int, ip: str):
-        with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
-            nodes = json.load(file)
-        node_pub = None
-        validators = []
-        for bhash in self.chain[block_index][-3]:
-            if isinstance(bhash, str):
-                # TODO figure out how to include validation time to ony return one node
-                validators + validator.rb(block_hash=bhash, block_time=self.chain[-3][1],
-                                          invalid=True)  # hmmmmm not sure
-        for node_ in nodes:
-            if node_["ip"] == ip:
-                if node_ in validators:
-                    node_pub = node_["pub_key"]
-
-        if not node_pub:
-            return
-
-        block_index = int(block_index)
-        trans_index = int(trans_index)
-        if self.chain[block_index][0]:  # TODO must complete invalid trans before validating
-            return
-        trans = self.chain[block_index][trans_index]
-        if self.wallet_value(trans["sender"], block_index=block_index) < float(trans["amount"]):
-            invalid_trans_ = False
-        else:
-            invalid_trans_ = True
-
-        if invalid_trans_:
-            self.chain[block_index].pop(trans_index)
-            pre_hashed_blocks = copy.copy(self.chain)
-
-            for i in range(len(self.chain) - block_index):  # update hashes
-                pre_hashed_blocks[block_index + i].pop()
-                pre_hashed_blocks[block_index + i].pop()
-                pre_hashed_blocks[block_index + i].pop()
-                block_hash = self.hash_block(pre_hashed_blocks[block_index + i])
-                self.chain[block_index + i][-3] = self.chain[block_index + i][-3][0] + [block_hash]
-                self.chain[block_index + i + 1][0] = [block_hash]
-
-        if not invalid_trans_:  # TODO update liar system
-            stake_removal = f"LIAR {node_pub} {ip}"
-            with open(f"{os.path.dirname(__file__)}/info/stake_trans.json", "r") as file:
-                stake_trans = json.load(file)
-            stake_trans.append(stake_removal)
-            with open(f"{os.path.dirname(__file__)}/info/stake_trans.json", "w") as file:
-                json.dump(file)
-
     def block_valid(self, block_index: int, public_key: str, time_of_validation: float, block):
         # check if is actual validator
         try:
@@ -748,10 +700,6 @@ def validate_blockchain(block_index, ip, time_, block):
             chain.block_valid(block_index, wallet, time_, block)
             break
 
-
-def invalid_blockchain(block_index, transaction_index, ip):
-    chain = read_blockchain()
-    chain.invalid_trans(block_index, transaction_index, ip)
 
 
 def get_wallet_val(pub_key):

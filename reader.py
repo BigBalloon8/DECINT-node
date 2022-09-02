@@ -18,12 +18,6 @@ def read():
                 print(f"NODE LINES: {node_lines}\n")
                 for message in node_lines:
                     message = message.split(" ")
-                    try:
-                        node.message_handler(message)
-                    except Exception as e:
-                        node.send(message[0], f"ERROR {e}")
-                        print(message[1], e)
-                        continue
 
                     if message[1] == "HELLO":
                         print("HELLO")
@@ -54,9 +48,6 @@ def read():
                         print(message[1], e)
                         continue
 
-                    if message[1] == "TRANS_INVALID":
-                        print("TRANS_INVALID")
-                        blockchain.invalid_blockchain(int(message[2]), int(message[3]), message[0])
     except:
         while True:
             traceback.print_exc()
