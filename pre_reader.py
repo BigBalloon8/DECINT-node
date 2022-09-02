@@ -1,6 +1,6 @@
 import node
 import blockchain
-
+import textwrap
 
 
 def read():
@@ -30,8 +30,10 @@ def read():
                 elif message[1] == "BLOCKCHAIN?":
                     #print("BLOCKCHAIN?")
                     chain = blockchain.read_blockchain()
-                    #TODO be able to send large chunks
-                    node.send(message[0], "BREQ " + str(chain.return_blockchain(int(message[2]))).replace(" ", ""))
+                    chunk = str(chain.return_blockchain(int(message[2]))).replace(" ", "")
+                    messages = textwrap.wrap(chunk, 5000)
+                    for message_ in messages:
+                        node.send(message[0], "BREQ " + message_)
 
                 elif message[1] == "BLOCKCHAINLEN?":
                     #print("getting BLOCKCHAINLEN?")

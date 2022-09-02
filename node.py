@@ -326,7 +326,15 @@ def request_reader(type_, ip="192.168.68.1"):
                 online_lines.append(" ".join(line))
 
             elif line[1] in breq_protocol:
-                breq_lines.append(" ".join(line))
+                try:
+                    ast.literal_eval(line[2])
+                    breq_lines.append(" ".join(line))
+                except ValueError:
+                    node_lines.append(" ".join(line))
+                except IndexError:
+                    node_lines.append(" ".join(line))
+                except SyntaxError:
+                    pass
 
             else:
                 try:
@@ -403,7 +411,6 @@ def request_reader(type_, ip="192.168.68.1"):
                     for n_line in new_lines:
                         file.write(n_line)
             return online_lines
-
 
         elif type_ == "BREQ":
             if len(breq_lines) != 0:
@@ -539,7 +546,7 @@ def get_blockchain_no_nodes():
             if tries == 10:
                 get_blockchain_no_nodes()
                 return
-            time.sleep(2)
+            time.sleep(5)
             lines = request_reader("BREQ")
             if lines:
                 line = lines[0].split(" ")
