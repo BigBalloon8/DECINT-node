@@ -181,7 +181,7 @@ def rand_act_node(num_nodes=1, type_=None):
 def line_remover(del_lines, file_path):
     with open(file_path, "r") as file:
         lines = file.readlines()
-    new_lines = [line for line in lines if line not in del_lines]
+    new_lines = [line for line in lines if line.strip("\n") not in del_lines]
     open(file_path, "w").close()
     with open(file_path, "a") as file:
         for line in new_lines:
@@ -874,3 +874,7 @@ def message_handler(message):
 
     else:
         raise UnrecognisedCommand("protocol unrecognised")
+
+
+if __name__ == '__main__':
+    line_remover(["abcdef"], f"{os.path.dirname(__file__)}/recent_messages.txt")
