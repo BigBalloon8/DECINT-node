@@ -15,7 +15,7 @@ def read():
             node_lines = node.request_reader("NODE")
             dist_blockchain_lines = node.dist_request_reader("BLOCKCHAIN")
             if node_lines:
-                print(f"NODE LINES: {node_lines}\n")
+                #print(f"NODE LINES: {node_lines}\n")
                 for message in node_lines:
                     message = message.split(" ")
 

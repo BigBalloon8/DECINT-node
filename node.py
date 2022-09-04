@@ -216,7 +216,7 @@ def dist_request_reader(type_="TRANS"):
         message = line.split(" ")
 
         try:
-            message_handler(message)
+            message_handler(message[2:])  # handle message without inputting dist and dist node address
         except NodeError as e:
             send(message[0], f"ERROR {e}")
             print(message[1], e)
@@ -520,7 +520,7 @@ def get_nodes_no_blockchain():
         lines = request_reader("NREQ")
         if lines:
             for line in lines:
-                print(f"NODE LINE: {line}")
+                #print(f"NODE LINE: {line}")
                 line = line.split(" ")
                 nodes = line[2]
                 nodes = ast.literal_eval(nodes)
