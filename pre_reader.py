@@ -13,12 +13,6 @@ def read():
                 for message in online_lines:
                     if message and message != " ":
                         message = message.split(" ")
-                    try:
-                        node.message_handler(message)
-                    except Exception as e:
-                        node.send(message[0], f"ERROR {e}")
-                        print(message[1], e)
-                        continue
 
                     if message[1] == "ONLINE?":
                         pass

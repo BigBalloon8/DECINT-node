@@ -671,10 +671,13 @@ def message_handler(message):
     BLOCKCHAINLEN? <ip>
     BLENREQ <ip> <number_of_chunks>
     """
-    try:
-        protocol = message[1]
-    except IndexError:
-        raise UnrecognisedArg("No Protocol Found")
+    len_1_messages = ["ONLINE?", "BLOCKCHAIN?", "GET_NODES", "BLOCKCHAINLEN?"]
+    if len(message) == 2:
+        if message[1] not in len_1_messages:
+            raise UnrecognisedArg("No Protocol Found")
+    if len(message) < 2:
+        raise UnrecognisedArg("number of args given incorrect")
+    protocol = message[1]
 
     node_types = ["Lite", "Blockchain", "AI", "dist"]
 
