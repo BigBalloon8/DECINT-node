@@ -1,4 +1,5 @@
 import asyncio
+from base64 import decode
 import itertools
 import hashlib
 import ast
@@ -261,7 +262,7 @@ class Blockchain:
         hex_hashed = hashed.hexdigest()
         return hex_hashed
 
-    def update(self, new_chunk1, new_chunk2, chunk_num):
+    def update(self, new_chunk1, new_chunk2, chunk_num): #TODO update for new blockchain system
         index = 0
         for block in new_chunk1[::-1]:  # removing invalid blocks and comparing with other
             if isinstance(block[-1], list):
@@ -301,57 +302,30 @@ class Blockchain:
         print(f"CHUNK {chunk_num} UPDATED SUCCESSFULLY")
         return True
 
-    # @jit(nopython=True)
-    def reducable_trans_value(self, total, trans, wallet_address, block_status):  # runs per block
-
-        # print(wallet_address)
-        if not isinstance(trans, dict):  # TODO add AI reward system
-            return total
-        if "amount" in trans:
-            if trans["sender"] == wallet_address:
-                return total - trans["amount"]
-            if trans["receiver"] == wallet_address:
-                if block_status:
-                    return total + round(trans["amount"] * 0.99, 8)
-            else:
-                return total
-        elif "stake_amount" in trans and trans["pub_key"] == wallet_address:
-            return total - trans["stake_amount"]
-        elif "unstake_amount" in trans and trans["pub_key"] == wallet_address:
-            if block_status:
-                return total + trans["unstake_amount"]
-        else:
-            return total
-
-    def reducable_block_value(self, total, block, wallet, upto):
-        block_status = False
-        print(block)
-        block_index = block[0]
-        block = block[1]
-        if upto:
-            if upto >= block_index:
-                return total
-        if len(block) > 3:
-            if isinstance(block[-1], list):
-                if block[-1][0]:
-                    block_status = True
-                    if block[-1][2] == wallet:
-                        total += block[-2][0]
-
-        return total + functools.reduce(
-            functools.partial(self.reducable_trans_value, wallet_address=wallet, block_status=block_status), block, 0.0)
-
-    def new_wallet_value(self, wallet_address, block_index=None):  # potentially better have to test
-        return functools.reduce(functools.partial(self.reducable_block_value, wallet=wallet_address, upto=block_index),
-                                enumerate(self.chain), 0.0)
-
     #@jit()
     def wallet_value(self, wallet_address, block_index=None):
         value = 0.0
-        cur_index = 0  # this has to ber done as self.chain[:block_index + 1] doesn't work with BigList class
-        for block in self.chain:
-            if block_index == cur_index:
-                break
+        if not block_index:
+            block_index = self.chain[-1][0][1]
+        
+        
+        while True:
+            i = 1
+            if self.chain[block_index-i][-1][0]:
+                if "sig" not in self.chain[block_index-i][2]:
+                    wallets = self.chain[block_index-i][2]
+                    break
+                else:
+                    pass
+            else:
+                i+=1
+        try:
+            value += wallets[wallet_address]
+        except IndexError:
+            pass
+
+        for j in range(len(i)):
+            block = self.chain[block_index-j]
             for trans in block:
                 if isinstance(trans, dict):
                     if "amount" in trans:
@@ -375,36 +349,34 @@ class Blockchain:
                         value += (trans["AI_reward"] * (
                                 trans["AI_reward"][trans["pub_keys"].index(wallet_address)] / sum(
                             trans["AI_reward"])))
-            if isinstance(block[-1], list):
-                if block[-1][0]:
-                    if block[-1][2] == wallet_address:
-                        value += block[-2][0] * 0.5
-            cur_index += 1
 
         return value
 
     def get_stake_value(self, wallet_address, block_index=None):
         value = 0.0
-        cur_index = 0  # this has to ber done as self.chain[:block_index + 1] doesn't work with BigList class
-        for block in self.chain:  # the reason to not use stake_trans.json is you don't know what block trans is in
-            if cur_index == block_index:
-                break
-            for trans in block:
-                if isinstance(trans, dict):
-                    if "amount" in trans:
-                        continue
-                    if trans["pub_key"] == wallet_address:
-                        if "stake_amount" in trans:
-                            if block[-1][0]:
-                                value += trans["stake_amount"]
-                        elif "unstake_amount" in trans:
-                            value -= trans["stake_amount"]
+
+        while True:
+            try:
+                with open(f"{os.path.dirname(__file__)}/info/stake_trans.json", "r") as file:
+                    stake_trans = json.load(file)
+                    break
+            except json.decoder.JSONDecodeError:
+                pass
+
+            for block_i, trans in stake_trans:
+                if block_i < block_index:
+                    if isinstance(trans, dict):
+                        if trans["pub_key"] == wallet_address:
+                            if "stake_amount" in trans:
+                                if self.chain[block_i][-1][0]:
+                                    value += trans["stake_amount"]
+                            elif "unstake_amount" in trans:
+                                value -= trans["stake_amount"]
 
                 if isinstance(trans, str):
                     if wallet_address in trans:
                         if "LIAR" in trans:
                             return 0.0
-            cur_index += 1
         return value
 
     def add_transaction(self, trans: dict):
@@ -462,8 +434,8 @@ class Blockchain:
         # prev_relative_time = 10000
 
         if relative_time < 900:  # if within the 15 mins of current block
-            if relative_time < 0:  # if not from the past
-                if prev_relative_time < 900:  # in order to add to previous block if within the aloud lateness time in
+            if relative_time < 0:  # if from the past
+                if prev_relative_time < 900:  # in order to add to previous block if within the aloud message lateness time in
                     if not self.chain[-2][-1][0]:
                         self.chain[-2].insert(-3, announcement)
 
@@ -475,7 +447,7 @@ class Blockchain:
                         temp_block.pop()
 
                         self.chain[-2][-3] = [self.hash_block(temp_block), announcement["time"]]
-                        self.chain[-1][0] = [self.hash_block(temp_block)]
+                        self.chain[-1][0] = [self.hash_block(temp_block), self.chain[-2][0][1]+1]
                         self.chain[-2][-1] = [False, announcement["time"]]
                         print("--STAKE ADDED TO PREVIOUS BLOCK--")
 
@@ -499,7 +471,7 @@ class Blockchain:
             self.chain[-1].append([trans_fees])
             self.chain[-1].append([False, b_time])
 
-            new_block = [[block_hash], announcement]
+            new_block = [[block_hash, self.block[-1][0][1]+1], announcement]
             self.chain.append(new_block)
             print("--NEW BLOCK--")
 
@@ -514,23 +486,17 @@ class Blockchain:
         for i in positions:
             if not isinstance(block[i], list):
                 if not validating:
-                    while True:
-                        print("not list")
                     return False
 
         for trans in block:
             if isinstance(trans, dict):
                 if trans["time"] < self.chain[block_index-1][-3][1]:
                     if not validating:
-                        while True:
-                            print("not correct time")
                         return False
                     else:
                         continue
                 if trans["time"] - block[1]["time"] > 900:
                     if not validating:
-                        while True:
-                            print("not correct time")
                         return False
                     else:
                         continue
@@ -632,6 +598,34 @@ class Blockchain:
         if not validating:
             return True
 
+    def temp_to_final(self, block_index):
+        """
+        Takes transaction based block and converts to a wallet based
+        """
+        block_head = self.chain[block_index][0]
+        block_tail = self.chain[block_index][-3:]
+        block_wallets = self.chain[block_index-1][2]
+
+        for trans in self.chain[block_index][1:-3]:
+            if "amount" in trans:
+                block_wallets[trans["sender"]] -= trans["amount"]
+                try:
+                    block_wallets[trans["reciever"]] += round(trans["amount"]*0.99,8)
+                except IndexError:
+                    block_wallets[trans["reciever"]] = round(trans["amount"]*0.99,8)
+            
+            elif "stake_amount" in trans:
+                block_wallets[trans["pub_key"]] -= trans["stake_amount"]
+            
+            elif "unstake_amount" in trans:
+                block_wallets[trans["pub_key"]] -= trans["unstake_amount"]
+        
+        block_wallets[self.chain[block_index][-1][2]] += self.chain[block_index][-2][0]
+        
+        self.chain[block_index] = [block_head, block_wallets] + block_tail
+            
+
+
     def block_valid(self, block_index: int, public_key: str, time_of_validation: float, block):
         # check if is actual validator
         try:
@@ -656,12 +650,19 @@ class Blockchain:
                             for trans in self.chain[block_index]:
                                 if isinstance(trans, dict):
                                     if "stake_amount" in trans or "unstake_amount" in trans:
-                                        stake_trans.append(trans)
-                            with open(f"{os.path.dirname(__file__)}/info/stake_trans.json", "r") as f:
-                                stake_transactions = json.load(f)
-                            stake_transactions = stake_transactions + stake_trans
-                            with open(f"{os.path.dirname(__file__)}/info/stake_trans.json", "w") as f:
-                                json.dump(stake_transactions, f)
+                                        stake_trans.append([block_index, trans])
+                            while True:
+                                try:
+                                    with open(f"{os.path.dirname(__file__)}/info/stake_trans.json", "r") as f:
+                                        stake_transactions = json.load(f)
+                                    stake_transactions = stake_transactions + stake_trans
+                                    with open(f"{os.path.dirname(__file__)}/info/stake_trans.json", "w") as f:
+                                        json.dump(stake_transactions, f)
+                                    break
+                                except json.decoder.JSONDecodeError:
+                                    pass
+
+                            self.temp_to_final(block_index)
 
                     else:
                         print("LIAR WAS FOUND")
@@ -774,6 +775,7 @@ if __name__ == "__main__":
     # print(len(CHAIN))
     # CHAIN[-1][-1] = 3
     # print(CHAIN)
+    print(CHAIN[-3][:2])
     start = timer()
     print(CHAIN.wallet_value("6efa5bfa8a9bfebaacacf9773f830939d8cb4a2129c1a2aaafaaf549"))
     print(timer() - start)

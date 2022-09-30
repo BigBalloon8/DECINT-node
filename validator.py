@@ -47,7 +47,7 @@ def rb(block_hash, block_time, time_validation=None, invalid=False):
         public = node["pub_key"]
         ip = node["ip"]
         amount_staked = 0.0
-        for stake_trans in stake_transactions:
+        for _, stake_trans in stake_transactions:
             if isinstance(stake_trans, dict):
                 if float(stake_trans["time"]) < block_time:
 
