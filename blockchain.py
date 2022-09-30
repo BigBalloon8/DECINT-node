@@ -312,8 +312,8 @@ class Blockchain:
         while True:
             i = 1
             if self.chain[block_index-i][-1][0]:
-                if "sig" not in self.chain[block_index-i][2]:
-                    wallets = self.chain[block_index-i][2]
+                if "sig" not in self.chain[block_index-i][1]:
+                    wallets = self.chain[block_index-i][1]
                     break
                 else:
                     pass
@@ -324,7 +324,7 @@ class Blockchain:
         except IndexError:
             pass
 
-        for j in range(len(i)):
+        for j in range(i):
             block = self.chain[block_index-j]
             for trans in block:
                 if isinstance(trans, dict):
@@ -383,7 +383,7 @@ class Blockchain:
         if len(self.chain[-1]) == 1:
             time.sleep(0.01)# give time for new block to load
         relative_time = int(float(trans["time"]) - float(self.chain[-1][1]["time"]))
-        prev_relative_time = int(float(trans["time"]) - float(self.chain[-2][1]["time"]))
+        prev_relative_time = int(float(trans["time"]) - float(self.chain[-2][0][2]))
         # prev_relative_time = 10000
 
         if relative_time < 900:
@@ -399,7 +399,7 @@ class Blockchain:
                         temp_block.pop()
 
                         self.chain[-2][-3] = [self.hash_block(temp_block), trans["time"]]
-                        self.chain[-1][0] = [self.hash_block(temp_block)]
+                        self.chain[-1][0] = [self.hash_block(temp_block),self.chain[-2][0][1]+1,self.chain[-1][1]["time"]]
                         self.chain[-2][-2] = [self.chain[-2][-2][0] + round(trans["amount"] * 0.01, 8)]  # += not work
                         self.chain[-2][-1] = [False, trans["time"]]  # block cant be true yet
                         print("--ADDED TO PREVIOUS BLOCK--")
@@ -424,13 +424,13 @@ class Blockchain:
             self.chain[-1].append([trans_fees])
             self.chain[-1].append([False, b_time])
 
-            new_block = [[block_hash], trans]
+            new_block = [[block_hash,self.chain[-2][0][1]+1, trans["time"]], trans]
             self.chain.append(new_block)
             print("--NEW BLOCK ADDED--")
 
     def add_protocol(self, announcement):
         relative_time = int(float(announcement["time"]) - float(self.chain[-1][1]["time"]))
-        prev_relative_time = int(float(announcement["time"]) - float(self.chain[-2][1]["time"]))
+        prev_relative_time = int(float(announcement["time"]) - float(self.chain[-2][0][2]))
         # prev_relative_time = 10000
 
         if relative_time < 900:  # if within the 15 mins of current block
@@ -447,7 +447,7 @@ class Blockchain:
                         temp_block.pop()
 
                         self.chain[-2][-3] = [self.hash_block(temp_block), announcement["time"]]
-                        self.chain[-1][0] = [self.hash_block(temp_block), self.chain[-2][0][1]+1]
+                        self.chain[-1][0] = [self.hash_block(temp_block), self.chain[-2][0][1]+1, self.chain[-1][1]["time"]]
                         self.chain[-2][-1] = [False, announcement["time"]]
                         print("--STAKE ADDED TO PREVIOUS BLOCK--")
 
@@ -471,7 +471,7 @@ class Blockchain:
             self.chain[-1].append([trans_fees])
             self.chain[-1].append([False, b_time])
 
-            new_block = [[block_hash, self.block[-1][0][1]+1], announcement]
+            new_block = [[block_hash, self.block[-1][0][1]+1, announcement["time"]], announcement]
             self.chain.append(new_block)
             print("--NEW BLOCK--")
 
@@ -604,7 +604,7 @@ class Blockchain:
         """
         block_head = self.chain[block_index][0]
         block_tail = self.chain[block_index][-3:]
-        block_wallets = self.chain[block_index-1][2]
+        block_wallets = self.chain[block_index-1][1]
 
         for trans in self.chain[block_index][1:-3]:
             if "amount" in trans:
@@ -775,7 +775,7 @@ if __name__ == "__main__":
     # print(len(CHAIN))
     # CHAIN[-1][-1] = 3
     # print(CHAIN)
-    print(CHAIN[-3][:2])
+    #print(CHAIN[-3][:2])
     start = timer()
     print(CHAIN.wallet_value("6efa5bfa8a9bfebaacacf9773f830939d8cb4a2129c1a2aaafaaf549"))
     print(timer() - start)
