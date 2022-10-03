@@ -37,7 +37,9 @@ def read():
                         node.send(message[0], "BLENREQ " + str(len(chain)))
 
         except:
+            import time
             while True:
+                time.sleep(0.5)
                 traceback.print_exc()
 
 

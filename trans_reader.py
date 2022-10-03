@@ -69,7 +69,7 @@ def staking_handler(line):
     except KeyError:
         if not stake_trans["unstake_amount"] > 0.0:
             return
-    if stake_trans["time"] > (time.time()-20.0):
+    if stake_trans["time"] > (time.time()-5.0): #how late a message can be
         if not stake_trans["time"] > time.time():
             chain.add_protocol(stake_trans)
             #blockchain.write_blockchain(chain)
@@ -87,7 +87,7 @@ def read():
         try:
             trans_lines = node.dist_request_reader()
             if trans_lines:
-                print(f"TRANS LINES: {trans_lines}")
+                #print(f"TRANS LINES: {trans_lines}")
                 for trans_line in trans_lines:
                     if "TRANS" in trans_line:
                         trans_handler(trans_line)

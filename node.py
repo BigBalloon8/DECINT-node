@@ -1,7 +1,6 @@
 """
 node
 """
-
 import socket
 import random
 import time
@@ -40,12 +39,43 @@ def receive():
         except Exception as e:
             print(e)
 
+class message_manager(Thread):
+    def __init__(self):
+        super(message_manager, self).__init__()
+        self.long_messages = []
+    
+    def run(self,address, message):
+        if "DIST" in message:
+            with open(f"{os.path.dirname(__file__)}/dist_messages.txt", "a") as file:
+                file.write(f"{address[0]} {message}\n")
+
+        else:
+            if (" " not in message and "ONLINE?" not in message and "BLOCKCHAIN?" not in message and "GET_NODES" not in message and "BLOCKCHAINLEN?" not in message) or "VALID" in message:
+                self.long_messages.append((address[0],message))
+
+            else:
+                with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "a+") as file:
+                    file.write(f"{address[0]} {message}\n")
+        
+        for i in self.long_messages:
+            if "]]" in i[1] or "]]]"in i[1] or "}]]" in i[1]:
+                if len([j for j in self.long_messages if j[0] == i[0]]) == len(self.long_messages):
+                    with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "a+") as file:
+                        file.write(f"{i[0]} {''.join([k[1] for k in self.long_messages])}\n")
+
+                
+                
+        
+
+
+
 def write_line(message, address):
     if "DIST" in message:
         with open(f"{os.path.dirname(__file__)}/dist_messages.txt", "a") as file:
             file.write(f"{address[0]} {message}\n")
             # file.write(f"{message.replace('DIST ','')}\n")
     else:
+        #TODO stop spam DOS attack (delete fake half complete valid messages)
         if " " not in message and "ONLINE?" not in message and "BLOCKCHAIN?" not in message and "GET_NODES" not in message and "BLOCKCHAINLEN?" not in message:
             with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "r") as file:
                 lines = []
@@ -218,8 +248,8 @@ def dist_request_reader(type_="TRANS"):
         try:
             message_handler(message[2:])  # handle message without inputting dist and dist node address
         except NodeError as e:
+            print([message], e)
             send(message[0], f"ERROR {e}")
-            print(message[1], e)
             left_over_lines.append(line)
             continue
         except NotCompleteError as e:
@@ -286,8 +316,8 @@ def request_reader(type_, ip="192.168.68.1"):
             try:
                 message_handler(line)
             except NodeError as e:
-                send(line[0], f"ERROR {e}")
-                print(line[1], e)
+                print("ERROR LINE: ",[" ".join(line)], e)
+                send(" ".join(line), f"ERROR {e}")
                 del_lines.append(" ".join(line))
                 continue
             except NotCompleteError:
@@ -349,7 +379,7 @@ def request_reader(type_, ip="192.168.68.1"):
             return breq_lines
 
 
-async def send_to_all(message):
+async def send_to_all(message, no_dist = False):
     """
     sends to all nodes
     """
@@ -360,6 +390,8 @@ async def send_to_all(message):
                 break
         except json.decoder.JSONDecodeError:
             pass
+    if no_dist:
+        all_nodes = [i for i in all_nodes if i["node_type"] != "dist"]
     for _ in asyncio.as_completed(
             [async_send(node["ip"], message, port=node["port"], send_all=True) for node in all_nodes]):
         result = await _

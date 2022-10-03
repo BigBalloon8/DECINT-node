@@ -1,10 +1,8 @@
 import asyncio
 from base64 import decode
-import itertools
 import hashlib
 import ast
 import traceback
-import functools
 from ecdsa import SigningKey, VerifyingKey, SECP112r2
 import node
 from ecdsa.util import randrange_from_seed__trytryagain
@@ -104,6 +102,7 @@ class SmartChain(object):  # to prevent running out of memory access different p
     def __init__(self):
         self.paths = [f"{os.path.dirname(__file__)}/info/blockchain/" + file_path for file_path in
                       os.listdir(os.path.dirname(__file__) + "/info/blockchain/")]
+        
         # TODO have most recent chunk not have to be opened every time (store in memory as list)
 
     def read_chunk(self, index):  # problem with 2 threads reading file at the same time
@@ -197,7 +196,7 @@ class SmartChain(object):  # to prevent running out of memory access different p
 class Blockchain:
 
     def __init__(self):
-        self.chain = SmartChain()
+        self.chain = SmartChain() #smart chain is just a list that saves itself in json
 
     def __repr__(self):
         return str(self.chain)  # .replace("]", "]\n")
@@ -386,9 +385,9 @@ class Blockchain:
         prev_relative_time = int(float(trans["time"]) - float(self.chain[-2][0][2]))
         # prev_relative_time = 10000
 
-        if relative_time < 900:
+        if relative_time < 120:
             if relative_time < 0:
-                if prev_relative_time < 900:
+                if prev_relative_time < 120:
                     if not self.chain[-2][-1][0]:
                         self.chain[-2].insert(-3, trans)
 
@@ -408,7 +407,7 @@ class Blockchain:
                 self.chain[-1].append(trans)
                 print("--TRANSACTION ADDED--")
 
-        elif relative_time > 900:
+        elif relative_time > 120:
             b_time = self.chain[-1][-1]["time"]
             block_hash = self.hash_block(self.chain[-1])
             trans_fees = 0.0
@@ -424,7 +423,7 @@ class Blockchain:
             self.chain[-1].append([trans_fees])
             self.chain[-1].append([False, b_time])
 
-            new_block = [[block_hash,self.chain[-2][0][1]+1, trans["time"]], trans]
+            new_block = [[block_hash, self.chain[-2][0][1]+1, trans["time"]], trans]
             self.chain.append(new_block)
             print("--NEW BLOCK ADDED--")
 
@@ -433,9 +432,9 @@ class Blockchain:
         prev_relative_time = int(float(announcement["time"]) - float(self.chain[-2][0][2]))
         # prev_relative_time = 10000
 
-        if relative_time < 900:  # if within the 15 mins of current block
+        if relative_time < 120:  # if within the 15 mins of current block
             if relative_time < 0:  # if from the past
-                if prev_relative_time < 900:  # in order to add to previous block if within the aloud message lateness time in
+                if prev_relative_time < 120:  # in order to add to previous block if within the aloud message lateness time in
                     if not self.chain[-2][-1][0]:
                         self.chain[-2].insert(-3, announcement)
 
@@ -455,7 +454,7 @@ class Blockchain:
                 self.chain[-1].append(announcement)
                 print("--STAKE ADDED--")
 
-        elif relative_time > 900:  # if new block is needed
+        elif relative_time > 120:  # if new block is needed
             b_time = self.chain[-1][-1]["time"]
             block_hash = self.hash_block(self.chain[-1])
             trans_fees = 0.0
@@ -495,7 +494,7 @@ class Blockchain:
                         return False
                     else:
                         continue
-                if trans["time"] - block[1]["time"] > 900:
+                if trans["time"] - block[1]["time"] > 120:
                     if not validating:
                         return False
                     else:
@@ -587,12 +586,12 @@ class Blockchain:
             message = f"VALID {str(block_index)} {str(time_of_validation)} {str(valid_trans).replace(' ','')}"
             message_len = len(message)
             if message_len < 5000:
-                asyncio.run(node.send_to_all(message))
+                asyncio.run(node.send_to_all(message, no_dist=True))
             else:
                 messages = textwrap.wrap(message, 5000)
                 for message_ in messages:
-                    asyncio.run(node.send_to_all(message_))
-                    time.sleep(0.5)
+                    asyncio.run(node.send_to_all(message_, no_dist=True))
+                    time.sleep(1)
             time.sleep(5)  # stop sending multiple VALIDs to dist node
 
         if not validating:
@@ -610,9 +609,9 @@ class Blockchain:
             if "amount" in trans:
                 block_wallets[trans["sender"]] -= trans["amount"]
                 try:
-                    block_wallets[trans["reciever"]] += round(trans["amount"]*0.99,8)
-                except IndexError:
-                    block_wallets[trans["reciever"]] = round(trans["amount"]*0.99,8)
+                    block_wallets[trans["receiver"]] += round(trans["amount"]*0.99,8)
+                except KeyError:
+                    block_wallets[trans["receiver"]] = round(trans["amount"]*0.99,8)
             
             elif "stake_amount" in trans:
                 block_wallets[trans["pub_key"]] -= trans["stake_amount"]
@@ -646,7 +645,7 @@ class Blockchain:
                         if not self.chain[block_index][-1][0]:
                             self.chain[block_index] = block
                             self.chain[block_index][-1] = [True, time_of_validation, public_key]
-                            self.chain[block_index+1][0] = [self.chain[block_index][-3][0]]
+                            self.chain[block_index+1][0] = [self.chain[block_index][-3][0], self.chain[block_index][0][1]+1, self.chain[block_index+1][1]["time"]]
                             for trans in self.chain[block_index]:
                                 if isinstance(trans, dict):
                                     if "stake_amount" in trans or "unstake_amount" in trans:
@@ -738,7 +737,7 @@ def key_tester():
 def tester():
     main_prv = input("PRIV: ")
     start_time = time.time()
-    for _ in range(900):
+    for _ in range(9000):
         #main_pub = os.environ["PUB_KEY"]
         time.sleep(1)
         path1 = True #bool(random.randint(0, 1))

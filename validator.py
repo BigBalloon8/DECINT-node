@@ -105,7 +105,7 @@ def am_i_validator():
                     #print("block has lists")
                     if (not block[-1][0]) and chain[block_index-1][-1][0]:
                         #print(f"Block {block_index} is not valid")
-                        if (time.time() - float(block[-3][1])) > 30.0:
+                        if (time.time() - float(block[-3][1])) > 10.0:
                             block_time = block[1]["time"]
                             block_hash = block[0][0]
                             nodes, time_of_valid = rb(block_hash, block_time)
