@@ -1,4 +1,5 @@
 import os
+import blockchain
 import node
 import reader
 import trans_reader
@@ -16,7 +17,6 @@ def run():
     open(f"{os.path.dirname(__file__)}/recent_messages.txt", "w").close()#clear recent message file
     local_ip = socket.gethostbyname(socket.gethostname())
     print(f"MY IP: {local_ip}")
-    #os.system("pip3 install --upgrade ecdsa")
     #local_ip = input("IP: ").replace(" ", "")
     """
     try:
@@ -25,14 +25,15 @@ def run():
     except:
         pass#wont work after first time ill come up with better way later
     """
+    chain = blockchain.Blockchain()
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
         executor.submit(node.receive)  # start recieving ✅
-        executor.submit(node.updator).result() # update Blockchain & Nodes ✅ # .result() is used to wait for the thread to finish
-        executor.submit(pre_reader.read)
-        executor.submit(reader.read)
-        executor.submit(trans_reader.read)
-        executor.submit(validator.am_i_validator)
+        executor.submit(node.updator, chain).result() # update Blockchain & Nodes ✅ # .result() is used to wait for the thread to finish
+        executor.submit(pre_reader.read, chain)
+        executor.submit(reader.read, chain)
+        executor.submit(trans_reader.read, chain)
+        executor.submit(validator.am_i_validator, chain)
 
 
 

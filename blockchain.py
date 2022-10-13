@@ -59,28 +59,33 @@ def quick_sort_block(block):
 
 
 class SmartBlock(object):
-    def __init__(self, block: list, block_num: int, paths: list):
+    def __init__(self, block: list, block_num: int, chain_obj: list):
         self.block = block
         self.block_num = block_num
-        self.paths = paths
+        self.chain_obj = chain_obj
 
     def __getitem__(self, item):
         return self.block[item]
 
     def __setitem__(self, key, value):
         self.block[key] = value
-        SmartChain()[self.block_num] = self.block
+        self.chain_obj[self.block_num] = self.block
 
     def append(self, trans):
         self.block.append(trans)
-        SmartChain()[self.block_num] = self.block
+        self.chain_obj[self.block_num] = self.block
         return self.block
 
     def pop(self, index):
-        return self.block.pop(index)
+        item = self.block.pop(index)
+        self.chain_obj[self.block_num] = self.block
+        return item
+
 
     def insert(self, index, val):
-        return self.block.insert(index, val)
+        self.block.insert(index, val)
+        self.chain_obj[self.block_num] = self.block
+        return self.block
 
     def __next__(self):
         for trans in self.block:
@@ -192,11 +197,52 @@ class SmartChain(object):  # to prevent running out of memory access different p
         #print(chunk)
         return chunk
 
+class SmartChainV2:
+    def __init__(self):
+        self.present_chian = []
+        self.postion_tracker = {}
+
+    def __getitem__(self, index):
+        if index < 0:
+            return SmartBlock(self.present_chian[index], index, self)
+        else:
+            return SmartBlock(self.present_chian[self.postion_tracker[index]], index, self)
+            
+    def __setitem__(self, index, value):
+        if index < 0:
+            self.present_chain[index] = value
+        else:
+            self.present_chain[self.postion_tracker[index]] = value
+        
+    def __next__(self):
+        for block in self.present_chain:
+            yield block
+
+    def append(self, block):
+        self.present_chain.append(block)
+        self.positon_tracker[block[0][1]] = len(self.postion_tracker)
+
+    def update(self,chain):
+        self.present_chain = chain
+        self.postion_tracker = {}
+        for i, block in enumerate(chain):
+            self.postion_tracker[block[0][1]] = i
+
+    def pop(self,index):
+        return self.present_chain.pop(index)
+
+    def __str__(self):
+        return str(self.present_chain)
+
+    def save_state(self):
+        with open(f"{os.path.dirname(__file__)}/info/blockchain.json", "r") as file:
+            json.dump(self.present_chian, file)
+        
 
 class Blockchain:
 
     def __init__(self):
-        self.chain = SmartChain() #smart chain is just a list that saves itself in json
+        self.chain = SmartChainV2() #smart chain is just a list 
 
     def __repr__(self):
         return str(self.chain)  # .replace("]", "]\n")
@@ -261,44 +307,44 @@ class Blockchain:
         hex_hashed = hashed.hexdigest()
         return hex_hashed
 
-    def update(self, new_chunk1, new_chunk2, chunk_num): #TODO update for new blockchain system
+    def update(self, new_chain1, new_chain2): #TODO update for new blockchain system
         index = 0
-        for block in new_chunk1[::-1]:  # removing invalid blocks and comparing with other
+        for block in new_chain1[::-1]:  # removing invalid blocks and comparing with other
             if isinstance(block[-1], list):
                 if not block[-1][0]:
                     index += 1
                     continue
                 else:
                     if index: #if not 0
-                        shortened_new_chunk1 = new_chunk1[:-index]
+                        shortened_new_chain1 = new_chain1[:-index]
                     else:
-                        shortened_new_chunk1 = new_chunk1
+                        shortened_new_chain1 = new_chain1
                     break
             else:
                 index += 1
                 continue
 
         index = 0
-        for block in new_chunk2[::-1]:  # removing invalid blocks and comparing with other
+        for block in new_chain2[::-1]:  # removing invalid blocks and comparing with other
             if isinstance(block[-1], list):
                 if not block[-1][0]:
                     index += 1
                     continue
                 else:
-                    shortened_new_chunk2 = new_chunk2[:-index]
+                    shortened_new_chain2 = new_chain2[:-index]
                     break
             else:
                 index += 1
                 continue
-        hash1 = hashlib.sha3_512(str(shortened_new_chunk1).encode())
-        hash2 = hashlib.sha3_512(str(shortened_new_chunk2).encode())
+        hash1 = hashlib.sha3_512(str(shortened_new_chain1).encode())
+        hash2 = hashlib.sha3_512(str(shortened_new_chain2).encode())
         print("\n", hash1.hexdigest(), hash2.hexdigest())
         if hash1.hexdigest() == hash2.hexdigest():
-            new_chunk = new_chunk1
+            new_chain = new_chain1
         else:
             return False
-        self.chain.update(chunk_num, new_chunk)
-        print(f"CHUNK {chunk_num} UPDATED SUCCESSFULLY")
+        self.chain.update(new_chain)
+        print(f"BLOCKCHAIN UPDATED SUCCESSFULLY")
         return True
 
     #@jit()
@@ -622,6 +668,8 @@ class Blockchain:
         block_wallets[self.chain[block_index][-1][2]] += self.chain[block_index][-2][0]
         
         self.chain[block_index] = [block_head, block_wallets] + block_tail
+        self.chain.pop(block_index - 1 )
+        self.chain.save_state()
             
 
 
@@ -632,8 +680,11 @@ class Blockchain:
             stake_trans = []
             for block_hash in self.chain[block_index][0]:
                 if isinstance(block_hash, str):
-                    val_node = validator.rb(block_hash, self.chain[block_index][1]["time"], time_of_validation)
-                    nodes += val_node[0]
+                    if "time" in self.chain[block_index][1]:
+                        val_node = validator.rb(block_hash, self.chain[block_index][1]["time"], time_of_validation)
+                        nodes += val_node[0]
+                    else:
+                        return
             # print(f"VALIDATOR NODES: {nodes}")
             print(f"VALIDATOR NODES: {nodes}")
             for ran_node in nodes:
@@ -675,12 +726,9 @@ class Blockchain:
             while True:
                 traceback.print_exc()
 
-    def return_blockchain(self, chunk):
-        return self.chain.return_chunk(chunk)
+    def return_blockchain(self):
+        return self.chain
 
-
-def read_blockchain():
-    return Blockchain()
 
 
 def read_nodes():
@@ -688,8 +736,7 @@ def read_nodes():
         return json.load(file)
 
 
-def validate_blockchain(block_index, ip, time_, block):
-    chain = read_blockchain()
+def validate_blockchain(block_index, ip, time_, block, chain):
     with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
         nodes = json.load(file)
     block = ast.literal_eval(block)
@@ -702,8 +749,7 @@ def validate_blockchain(block_index, ip, time_, block):
 
 
 
-def get_wallet_val(pub_key):
-    chain = read_blockchain()
+def get_wallet_val(pub_key, chain):
     return chain.wallet_value(pub_key)
 
 

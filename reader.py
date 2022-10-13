@@ -5,8 +5,7 @@ from requests import get
 import blockchain
 
 
-def read():
-    #time.sleep(20)
+def read(chain):
     print("---READER STARTED---")
     #ip = get('https://api.ipify.org').text
     try:
@@ -33,7 +32,7 @@ def read():
 
                     if message[1] == "VALID":  # update block to true
                         print("VALID")
-                        blockchain.validate_blockchain(int(message[2]), message[0], float(message[3]), message[4])
+                        blockchain.validate_blockchain(int(message[2]), message[0], float(message[3]), message[4], chain)
 
                     else:
                         pass

@@ -1,8 +1,6 @@
 import time
 import random
-import math
 #  from numba import jit
-import blockchain
 import os
 import json
 import traceback
@@ -82,7 +80,7 @@ def rb(block_hash, block_time, time_validation=None, invalid=False):
         return rand_node[-1], time_validation
 
 
-def am_i_validator():
+def am_i_validator(chain):
     """
     Reads the Blockchain checking if blocks is going to be validated by your node
 
@@ -96,11 +94,11 @@ def am_i_validator():
             my_pub = file.read()
         validated_blocks = []
         while True:
-            chain = blockchain.read_blockchain()
             block_index = 0
             for block in chain:  # not efficient as you are checking validated blocks
                 if len(block) <= 3:
                     continue
+                block_index = block[0][1]
                 if isinstance(block[-3], list):  # and block[0] != block[-3]: not sure what this is meant to prevent
                     #print("block has lists")
                     if (not block[-1][0]) and chain[block_index-1][-1][0]:
@@ -112,8 +110,7 @@ def am_i_validator():
                             for node in nodes:
                                 if node["pub_key"] == my_pub and block_index not in validated_blocks:
                                     print(f"I AM VALIDATOR, B{block_index}")
-                                    chain_ = blockchain.read_blockchain()
-                                    chain_.validate(block_index, time_of_valid)
+                                    chain.validate(block_index, time_of_valid)
                                     validated_blocks.append(block_index)
                 block_index += 1
     except:

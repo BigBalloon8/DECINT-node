@@ -11,7 +11,7 @@ import json
 def AI_handler():
     pass
 
-def trans_handler(line):
+def trans_handler(line,chain):
     #print(line)
     line = line.split(" ")
     trans = {"time": float(line[2]), "sender": line[3], "receiver": line[4], "amount": float(line[5]), "sig": line[6]}
@@ -21,18 +21,17 @@ def trans_handler(line):
     public_key = VerifyingKey.from_string(bytes.fromhex(trans["sender"]), curve=SECP112r2)
     if not public_key.verify(bytes.fromhex(trans["sig"]), trans_no_sig.encode()):
         return
-    chain = blockchain.read_blockchain()
     if trans in chain[-1] or trans in chain[-2]:
         return
     if not trans["amount"] > 0.0:
         return
 
-    if float(trans["time"]) > (time.time() - 20.0):  # was announced in the last 30 seconds
+    if float(trans["time"]) > (time.time() - 5.0):  # was announced in the last 5 seconds
         if not float(trans["time"]) > time.time():  # not from the future
             chain.add_transaction(trans)
             #blockchain.write_blockchain(chain)
 
-def AI_job_handler(line):
+def AI_job_handler(line,chain):
     line = line.split(" ")
     nodes = ast.literal_eval(line[3])
     nodes_info = []
@@ -42,15 +41,14 @@ def AI_job_handler(line):
     r = requests.get(f"https://decint.com/si/{line[4]}")
     if r.status_code == 404:
         return
-    chain = blockchain.read_blockchain()
     if job_announce in chain[-1] or job_announce in chain[-2]:
         return
-    if job_announce["time"] > (time.time() - 20.0):  # was announced in the last 30 seconds
+    if job_announce["time"] > (time.time() - 5.0):  # was announced in the last 5 seconds
         if not job_announce["time"] > time.time():  # not from the future
             chain.add_protocol(job_announce)
             #blockchain.write_blockchain(chain)
 
-def staking_handler(line):
+def staking_handler(line,chain):
     line = line.split(" ")
     if "STAKE" == line[1]:
         stake_trans = {"time": float(line[2]), "pub_key": line[3], "stake_amount": float(line[4]), "sig": line[5]}
@@ -60,7 +58,6 @@ def staking_handler(line):
     public_key = VerifyingKey.from_string(bytes.fromhex(stake_trans["pub_key"]), curve=SECP112r2)
     if not public_key.verify(bytes.fromhex(stake_trans["sig"]), str(stake_trans["time"]).encode()):
         return
-    chain = blockchain.read_blockchain()
     if stake_trans in chain[-1] or stake_trans in chain[-2]:
         return
     try:
@@ -80,7 +77,7 @@ def AI_reward_handler(line):
     pass
 
 
-def read():
+def read(chain):
     #time.sleep(20)
     print("---TRANSACTION READER STARTED---")
     while True:
@@ -90,14 +87,14 @@ def read():
                 #print(f"TRANS LINES: {trans_lines}")
                 for trans_line in trans_lines:
                     if "TRANS" in trans_line:
-                        trans_handler(trans_line)
+                        trans_handler(trans_line,chain)
                         #  TODO add trans error handler
                     elif "AI_JOB" in trans_line:
-                        AI_job_handler(trans_line)
+                        AI_job_handler(trans_line,chain)
                     elif "STAKE" in trans_line or "UNSTAKE" in trans_line:
-                        staking_handler(trans_line)
+                        staking_handler(trans_line,chain)
                     elif "AI_REWARD" in trans_line:
-                        AI_job_handler(trans_line)
+                        AI_job_handler(trans_line,chain)
         except Exception:
             while True:
                 traceback.print_exc()

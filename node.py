@@ -26,6 +26,7 @@ def receive():
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server.bind(("", 1379))
     server.listen()
+    message_handle = message_manager()
     while True:
         try:
             client, address = server.accept()
@@ -33,40 +34,39 @@ def receive():
             if "\n" in message:
                 continue
             print(f"Message from {address} , {message}\n")
-            thread = Thread(target=write_line, args=(message, address,))
-            thread.start()
+            #thread = Thread(target=message_handle.write, args=(message, address,))
+            #thread.start()
+            message_handle.write(address, message)
             continue
         except Exception as e:
             print(e)
 
-class message_manager(Thread):
+class message_manager():
     def __init__(self):
-        super(message_manager, self).__init__()
         self.long_messages = []
     
-    def run(self,address, message):
+    def write(self,address, message):
         if "DIST" in message:
             with open(f"{os.path.dirname(__file__)}/dist_messages.txt", "a") as file:
                 file.write(f"{address[0]} {message}\n")
-
+        
         else:
             if (" " not in message and "ONLINE?" not in message and "BLOCKCHAIN?" not in message and "GET_NODES" not in message and "BLOCKCHAINLEN?" not in message) or "VALID" in message:
                 self.long_messages.append((address[0],message))
 
             else:
+                #print("file written")
                 with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "a+") as file:
                     file.write(f"{address[0]} {message}\n")
-        
+
         for i in self.long_messages:
             if "]]" in i[1] or "]]]"in i[1] or "}]]" in i[1]:
                 if len([j for j in self.long_messages if j[0] == i[0]]) == len(self.long_messages):
                     with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "a+") as file:
-                        file.write(f"{i[0]} {''.join([k[1] for k in self.long_messages])}\n")
-
-                
-                
-        
-
+                        long_write_lines = ''.join([k[1] for k in self.long_messages if k[0]== i[0]])
+                        file.write(f"{i[0]} {long_write_lines}\n")
+                        for m in [k for k in self.long_messages if k[0]== i[0]]: #TODO optimize this
+                            self.long_messages.remove(m)
 
 
 def write_line(message, address):
@@ -441,7 +441,7 @@ def unstake(priv_key, amount):
     send_to_dist(f"UNSTAKE {stake_time} {pub_key} {amount} {sig}")
 
 
-def updator():  # send ask the website for Blockchain as most up to date
+def updator(chain):  # send ask the website for Blockchain as most up to date
     # TODO add stake updator
     node = rand_act_node()
     print("---GETTING NODES---")
@@ -468,77 +468,55 @@ def updator():  # send ask the website for Blockchain as most up to date
             tries += 1
             continue
 
-    get_blockchain_no_nodes()
+    get_blockchain_no_nodes(chain)
 
 
-def get_blockchain_len():
+
+def get_blockchain_no_nodes(chain):
+    print("---GETTING BLOCKCHAIN---")
+
     node = rand_act_node(type_="Blockchain")
     time.sleep(1)
-    send(node["ip"], "BLOCKCHAINLEN?")
+    send(node["ip"], "BLOCKCHAIN?")
+    tries = 0
+    while True:
+        if tries == 10:
+            get_blockchain_no_nodes(chain)
+            return
+        time.sleep(2)
+        lines = request_reader("BREQ")
+        if lines:
+            line = lines[0].split(" ")
+            if line[0] == node["ip"]:
+                new_chain_1 = ast.literal_eval(line[2])
+                print(f"---BLOCKCHAIN NODE 1 RECEIVED---")
+                break
+        else:
+            tries += 1
     time.sleep(1)
-    lines = request_reader("BREQ")
-    if lines:
-        print(f"BREQ LINE: {lines[0]}")
-        line = lines[0].split(" ")
-        if line[0] == node["ip"]:
-            length = int(line[2])
-            print("---BLOCKCHAIN LENGTH RECEIVED---")
-            return length
 
+    node = rand_act_node(type_="Blockchain")
+    time.sleep(0.1)
+    send(node["ip"], "BLOCKCHAIN?")
+    tries = 0
+    while True:
+        if tries == 10:
+            get_blockchain_no_nodes(chain)
+            return
+        time.sleep(2)
+        lines = request_reader("BREQ")
+        if lines:
+            line = lines[0].split(" ")
+            if line[0] == node["ip"]:
+                new_chain_2 = ast.literal_eval(line[2])
+                print(f"---BLOCKCHAIN NODE 2 RECEIVED---")
+                break
+        else:
+            tries += 1
 
-def get_blockchain_no_nodes():
-    print("---GETTING BLOCKCHAIN---")
-    len1 = get_blockchain_len()//10000
-    len2 = get_blockchain_len()//10000
-    if len1 != len2:
-        print("len1 =! len2")
-        get_blockchain_no_nodes()
-        return
-    print("len1 == len2")
-    for i in range(len1+1):
-        node = rand_act_node(type_="Blockchain")
-        time.sleep(1)
-        send(node["ip"], f"BLOCKCHAIN? {i}")
-        tries = 0
-        while True:
-            if tries == 10:
-                get_blockchain_no_nodes()
-                return
-            time.sleep(2)
-            lines = request_reader("BREQ")
-            if lines:
-                line = lines[0].split(" ")
-                if line[0] == node["ip"]:
-                    new_chunk_1 = ast.literal_eval(line[2])
-                    print(f"---CHUNK {i} NODE 1 RECEIVED---")
-                    break
-            else:
-                tries += 1
-        time.sleep(1)
-
-        node = rand_act_node(type_="Blockchain")
-        time.sleep(0.1)
-        send(node["ip"], f"BLOCKCHAIN? {i}")
-        tries = 0
-        while True:
-            if tries == 10:
-                get_blockchain_no_nodes()
-                return
-            time.sleep(2)
-            lines = request_reader("BREQ")
-            if lines:
-                line = lines[0].split(" ")
-                if line[0] == node["ip"]:
-                    new_chunk_2 = ast.literal_eval(line[2])
-                    print(f"---CHUNK {i} NODE 2 RECEIVED---")
-                    break
-            else:
-                tries += 1
-
-        chain = blockchain.read_blockchain()
-        check = chain.update(new_chunk_1, new_chunk_2, i)
-        if not check:
-            get_blockchain_no_nodes()
+    check = chain.update(new_chain_1, new_chain_2)
+    if not check:
+        get_blockchain_no_nodes(chain)
 
 
 def get_nodes_no_blockchain():
@@ -770,11 +748,8 @@ def message_handler(message):
 
     elif protocol == "BLOCKCHAIN?":
         # host, BLOCKCHAIN?
-        if len(message) != 3:
+        if len(message) != 2:
             raise UnrecognisedArg("number of args given incorrect")
-
-        if not check_int(message[2]):
-            raise ValueTypeError("Chunk Index not given as int")
 
     elif protocol == "UPDATE":
         # host, UPDATE, update time, old public key, new public key, port, version, sig
