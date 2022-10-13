@@ -95,7 +95,7 @@ def am_i_validator(chain):
         validated_blocks = []
         while True:
             block_index = 0
-            for block in chain:  # not efficient as you are checking validated blocks
+            for block in chain:
                 if len(block) <= 3:
                     continue
                 block_index = block[0][1]

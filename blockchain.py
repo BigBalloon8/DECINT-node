@@ -199,15 +199,17 @@ class SmartChain(object):  # to prevent running out of memory access different p
 
 class SmartChainV2:
     def __init__(self):
-        self.present_chian = [[["c484eb3cfd69ad6c289dcc1e1b671929cdb7b6a63f75a4d21e8d1e126ad8433d", 1, 901.0], {"0": 0.0,"6efa5bfa8a9bfebaacacf9773f830939d8cb4a2129c1a2aaafaaf549": 8388607.0}, ["6db4f412053b48a7f2579ed59d28a7d623ef6ebc9d5023b17cb331b8b92d5be8", 902.0], [0], [True, 903.0, "0"]], [["6db4f412053b48a7f2579ed59d28a7d623ef6ebc9d5023b17cb331b8b92d5be8", 2, 1802.0], {"time": 1802.0, "pub_key": "6efa5bfa8a9bfebaacacf9773f830939d8cb4a2129c1a2aaafaaf549", "stake_amount": 1.0, "sig": "225a69aee9a4a360ba496c11b3e030321371246cfccf86e9ed7c8056"}]]
-        self.postion_tracker = {}
+        self.present_chain = [[["c484eb3cfd69ad6c289dcc1e1b671929cdb7b6a63f75a4d21e8d1e126ad8433d", 1, 901.0], {"0": 0.0,"6efa5bfa8a9bfebaacacf9773f830939d8cb4a2129c1a2aaafaaf549": 8388607.0}, ["6db4f412053b48a7f2579ed59d28a7d623ef6ebc9d5023b17cb331b8b92d5be8", 902.0], [0], [True, 903.0, "0"]], [["6db4f412053b48a7f2579ed59d28a7d623ef6ebc9d5023b17cb331b8b92d5be8", 2, 1802.0], {"time": 1802.0, "pub_key": "6efa5bfa8a9bfebaacacf9773f830939d8cb4a2129c1a2aaafaaf549", "stake_amount": 1.0, "sig": "225a69aee9a4a360ba496c11b3e030321371246cfccf86e9ed7c8056"}]]
+        self.postion_tracker = {1:0, 2:1}
 
     def __getitem__(self, index):
         if index < 0:
             return SmartBlock(self.present_chian[index], index, self)
         else:
             return SmartBlock(self.present_chian[self.postion_tracker[index]], index, self)
-            
+
+        
+
     def __setitem__(self, index, value):
         if index < 0:
             self.present_chain[index] = value
@@ -262,6 +264,10 @@ class Blockchain:
 
     def __getitem__(self, item):
         return self.chain[item]
+
+    def __next__(self):
+        for block in self.chain:
+            yield block
 
     def get_block(self, block_index: int):
         try:
@@ -812,16 +818,16 @@ if __name__ == "__main__":
     # print(trans)
     # key_tester()
     CHAIN = Blockchain()
-    # print("hash: ", CHAIN.hash_block(1))
-    # write_blockchain(CHAIN)
+    print(list(next(CHAIN)))
+    for i in CHAIN:
+        print(i)
     # print(CHAIN)
     # print(CHAIN.hash_block(CHAIN[-1]))
     # print(read_blockchain().send_blockchain())
     # print(len(CHAIN))
     # CHAIN[-1][-1] = 3
-    # print(CHAIN)
     #print(CHAIN[-3][:2])
-    start = timer()
-    print(CHAIN.wallet_value("6efa5bfa8a9bfebaacacf9773f830939d8cb4a2129c1a2aaafaaf549"))
-    print(timer() - start)
+    #start = timer()
+    #print(CHAIN.wallet_value("6efa5bfa8a9bfebaacacf9773f830939d8cb4a2129c1a2aaafaaf549"))
+    #print(timer() - start)
     # print(CHAIN.block_sort(CHAIN[-1]))
