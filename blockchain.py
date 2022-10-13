@@ -107,7 +107,7 @@ class SmartChain(object):  # to prevent running out of memory access different p
     def __init__(self):
         self.paths = [f"{os.path.dirname(__file__)}/info/blockchain/" + file_path for file_path in
                       os.listdir(os.path.dirname(__file__) + "/info/blockchain/")]
-        
+
         # TODO have most recent chunk not have to be opened every time (store in memory as list)
 
     def read_chunk(self, index):  # problem with 2 threads reading file at the same time
@@ -204,19 +204,19 @@ class SmartChainV2:
 
     def __getitem__(self, index):
         if index < 0:
-            return SmartBlock(self.present_chian[index], index, self)
+            return SmartBlock(self.present_chain[index], index, self)
         else:
-            return SmartBlock(self.present_chian[self.postion_tracker[index]], index, self)
+            return SmartBlock(self.present_chain[self.postion_tracker[index]], index, self)
 
-        
+
 
     def __setitem__(self, index, value):
         if index < 0:
             self.present_chain[index] = value
         else:
             self.present_chain[self.postion_tracker[index]] = value
-        
-    def __next__(self):
+
+    def __iter__(self):
         for block in self.present_chain:
             yield block
 
@@ -238,13 +238,13 @@ class SmartChainV2:
 
     def save_state(self):
         with open(f"{os.path.dirname(__file__)}/info/blockchain.json", "r") as file:
-            json.dump(self.present_chian, file)
-        
+            json.dump(self.present_chain, file)
+
 
 class Blockchain:
 
     def __init__(self):
-        self.chain = SmartChainV2() #smart chain is just a list 
+        self.chain = SmartChainV2() #smart chain is just a list
 
     def __repr__(self):
         return str(self.chain)  # .replace("]", "]\n")
@@ -265,7 +265,7 @@ class Blockchain:
     def __getitem__(self, item):
         return self.chain[item]
 
-    def __next__(self):
+    def __iter__(self):
         for block in self.chain:
             yield block
 
@@ -358,8 +358,8 @@ class Blockchain:
         value = 0.0
         if not block_index:
             block_index = self.chain[-1][0][1]
-        
-        
+
+
         while True:
             i = 1
             if self.chain[block_index-i][-1][0]:
@@ -399,7 +399,7 @@ class Blockchain:
                     elif "AI_reward" in trans and wallet_address in trans["pub_keys"]:
                         value += (trans["AI_reward"] * (
                                 trans["AI_reward"][trans["pub_keys"].index(wallet_address)] / sum(
-                            trans["AI_reward"])))
+                                trans["AI_reward"])))
 
         return value
 
@@ -607,7 +607,7 @@ class Blockchain:
                             while True:
                                 print("not enough funds")
                             return False
-                        
+
             elif isinstance(trans, list):
                 if isinstance(trans[0], float) and len(trans) == 1:  # if is the reward amount list
                     total = 0.0
@@ -664,19 +664,19 @@ class Blockchain:
                     block_wallets[trans["receiver"]] += round(trans["amount"]*0.99,8)
                 except KeyError:
                     block_wallets[trans["receiver"]] = round(trans["amount"]*0.99,8)
-            
+
             elif "stake_amount" in trans:
                 block_wallets[trans["pub_key"]] -= trans["stake_amount"]
-            
+
             elif "unstake_amount" in trans:
                 block_wallets[trans["pub_key"]] -= trans["unstake_amount"]
-        
+
         block_wallets[self.chain[block_index][-1][2]] += self.chain[block_index][-2][0]
-        
+
         self.chain[block_index] = [block_head, block_wallets] + block_tail
         self.chain.pop(block_index - 1 )
         self.chain.save_state()
-            
+
 
 
     def block_valid(self, block_index: int, public_key: str, time_of_validation: float, block):
@@ -804,7 +804,6 @@ def tester():
             node.send_to_dist(f"TRANS {' '.join(trans)}")
             print(time.time()-start_time)
         else:
-            continue
             with open(f"{os.path.dirname(__file__)}/testing_keys.txt", "r") as file:
                 test_keys = file.read().splitlines()
             wallet = random.choices(test_keys)
@@ -818,7 +817,6 @@ if __name__ == "__main__":
     # print(trans)
     # key_tester()
     CHAIN = Blockchain()
-    print(list(next(CHAIN)))
     for i in CHAIN:
         print(i)
     # print(CHAIN)
