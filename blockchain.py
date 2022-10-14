@@ -200,13 +200,13 @@ class SmartChain(object):  # to prevent running out of memory access different p
 class SmartChainV2:
     def __init__(self):
         self.present_chain = [[["c484eb3cfd69ad6c289dcc1e1b671929cdb7b6a63f75a4d21e8d1e126ad8433d", 1, 901.0], {"0": 0.0,"6efa5bfa8a9bfebaacacf9773f830939d8cb4a2129c1a2aaafaaf549": 8388607.0}, ["6db4f412053b48a7f2579ed59d28a7d623ef6ebc9d5023b17cb331b8b92d5be8", 902.0], [0], [True, 903.0, "0"]], [["6db4f412053b48a7f2579ed59d28a7d623ef6ebc9d5023b17cb331b8b92d5be8", 2, 1802.0], {"time": 1802.0, "pub_key": "6efa5bfa8a9bfebaacacf9773f830939d8cb4a2129c1a2aaafaaf549", "stake_amount": 1.0, "sig": "225a69aee9a4a360ba496c11b3e030321371246cfccf86e9ed7c8056"}]]
-        self.postion_tracker = {1:0, 2:1}
+        self.position_tracker = {1:0, 2:1}
 
     def __getitem__(self, index):
         if index < 0:
             return SmartBlock(self.present_chain[index], index, self)
         else:
-            return SmartBlock(self.present_chain[self.postion_tracker[index]], index, self)
+            return SmartBlock(self.present_chain[self.position_tracker[index]], index, self)
 
 
 
@@ -214,21 +214,21 @@ class SmartChainV2:
         if index < 0:
             self.present_chain[index] = value
         else:
-            self.present_chain[self.postion_tracker[index]] = value
+            self.present_chain[self.position_tracker[index]] = value
 
     def __iter__(self):
-        for block in self.present_chain:
-            yield block
+        for i, block in zip(self.position_tracker.items(), self.present_chain):
+            yield SmartBlock(block, i ,self)
 
     def append(self, block):
         self.present_chain.append(block)
-        self.positon_tracker[block[0][1]] = len(self.postion_tracker)
+        self.position_tracker[block[0][1]] = len(self.position_tracker)
 
     def update(self,chain):
         self.present_chain = chain
-        self.postion_tracker = {}
+        self.position_tracker = {}
         for i, block in enumerate(chain):
-            self.postion_tracker[block[0][1]] = i
+            self.position_tracker[block[0][1]] = i
 
     def pop(self,index):
         return self.present_chain.pop(index)
@@ -237,7 +237,7 @@ class SmartChainV2:
         return str(self.present_chain)
 
     def save_state(self):
-        with open(f"{os.path.dirname(__file__)}/info/blockchain.json", "r") as file:
+        with open(f"{os.path.dirname(__file__)}/info/blockchain.json", "w") as file:
             json.dump(self.present_chain, file)
 
 
@@ -475,7 +475,7 @@ class Blockchain:
             self.chain[-1].append([trans_fees])
             self.chain[-1].append([False, b_time])
 
-            new_block = [[block_hash, self.chain[-2][0][1]+1, trans["time"]], trans]
+            new_block = [[block_hash, self.chain[-1][0][1]+1, trans["time"]], trans]
             self.chain.append(new_block)
             print("--NEW BLOCK ADDED--")
 
@@ -532,6 +532,7 @@ class Blockchain:
         valid_trans = []
         if block is None:
             block = self.chain[block_index]
+            #print("VALDATING_BLOCK: ", block)
 
         positions = [0,-1,-2,-3]
         for i in positions:
@@ -823,7 +824,8 @@ if __name__ == "__main__":
     # print(CHAIN.hash_block(CHAIN[-1]))
     # print(read_blockchain().send_blockchain())
     # print(len(CHAIN))
-    # CHAIN[-1][-1] = 3
+    CHAIN[-1][-1] = 3
+    print(CHAIN)
     #print(CHAIN[-3][:2])
     #start = timer()
     #print(CHAIN.wallet_value("6efa5bfa8a9bfebaacacf9773f830939d8cb4a2129c1a2aaafaaf549"))

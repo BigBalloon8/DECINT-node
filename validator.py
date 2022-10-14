@@ -4,6 +4,8 @@ import random
 import os
 import json
 import traceback
+import blockchain
+import copy
 
 """
 check amount staked by node from that info
@@ -94,25 +96,24 @@ def am_i_validator(chain):
             my_pub = file.read()
         validated_blocks = []
         while True:
-            block_index = 0
-            for block in chain:
-                if len(block) <= 3:
+            indexes = copy.copy(list(chain.chain.position_tracker.keys()))
+            for i in indexes: #cant loop through chain as chain can by updated during looping
+                if len(chain[i]) <= 3:
                     continue
-                block_index = block[0][1]
-                if isinstance(block[-3], list):  # and block[0] != block[-3]: not sure what this is meant to prevent
+                block_index = i
+                if isinstance(chain[i][-3], list):  # and block[0] != block[-3]: not sure what this is meant to prevent
                     #print("block has lists")
-                    if (not block[-1][0]) and chain[block_index-1][-1][0]:
+                    if (not chain[i][-1][0]) and chain[i-1][-1][0]:
                         #print(f"Block {block_index} is not valid")
-                        if (time.time() - float(block[-3][1])) > 10.0:
-                            block_time = block[1]["time"]
-                            block_hash = block[0][0]
+                        if (time.time() - float(chain[i][-3][1])) > 10.0:
+                            block_time = chain[i][1]["time"]
+                            block_hash = chain[i][0][0]
                             nodes, time_of_valid = rb(block_hash, block_time)
                             for node in nodes:
                                 if node["pub_key"] == my_pub and block_index not in validated_blocks:
                                     print(f"I AM VALIDATOR, B{block_index}")
                                     chain.validate(block_index, time_of_valid)
                                     validated_blocks.append(block_index)
-                block_index += 1
     except:
         while True:
             traceback.print_exc()
