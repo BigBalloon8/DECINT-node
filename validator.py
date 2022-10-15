@@ -90,30 +90,32 @@ def am_i_validator(chain):
             my_pub = file.read()
         validated_blocks = []
         while True:
-            time.sleep(1)
-            indexes = copy.copy(list(chain.chain.position_tracker.keys()))
-            if len(indexes) != len(chain):  # durig update of position_tracker
-                continue
-            for i in indexes:  # cant loop through chain as chain can by updated during looping
-                if len(chain[i]) <= 3:
+            try:
+                time.sleep(1)
+                indexes = copy.copy(list(chain.chain.position_tracker.keys()))
+                if len(indexes) != len(chain):  # durig update of position_tracker
                     continue
-                block_index = i
-                if isinstance(chain[i][-3], list) and chain.chain.exists(i-1):
-                    # print("block has lists")
-                    if (not chain[i][-1][0]) and chain[i-1][-1][0]:
-                        # print(f"Block {block_index} is not valid")
-                        if (time.time() - float(chain[i][-3][1])) > 10.0:
-                            block_time = chain[i][1]["time"]
-                            block_hash = chain[i][0][0]
-                            nodes, time_of_valid = rb(block_hash, block_time)
-                            for node in nodes:
-                                if node["pub_key"] == my_pub and block_index not in validated_blocks:
-                                    print(f"I AM VALIDATOR, B{block_index}")
-                                    chain.validate(block_index, time_of_valid)
-                                    validated_blocks.append(block_index)
-    except blockchain.SmartChainKeyError:  # happens when a block is validated so is looping through incorrect blocks
-        traceback.print_exc()
-        pass
+                for i in indexes:  # cant loop through chain as chain can by updated during looping
+                    if len(chain[i]) <= 3:
+                        continue
+                    block_index = i
+                    if isinstance(chain[i][-3], list):
+                        # print("block has lists")
+                        if (not chain[i][-1][0]):
+                            if chain[i-1][-1][0]:  # cant be on line above 
+                                # print(f"Block {block_index} is not valid")
+                                if (time.time() - float(chain[i][-3][1])) > 10.0:
+                                    block_time = chain[i][1]["time"]
+                                    block_hash = chain[i][0][0]
+                                    nodes, time_of_valid = rb(block_hash, block_time)
+                                    for node in nodes:
+                                        if node["pub_key"] == my_pub and block_index not in validated_blocks:
+                                            print(f"I AM VALIDATOR, B{block_index}")
+                                            chain.validate(block_index, time_of_valid)
+                                            validated_blocks.append(block_index)
+            except blockchain.SmartChainKeyError:  # happens when a block is validated so is looping through incorrect blocks
+                traceback.print_exc()
+                continue
     except:
         while True:
             traceback.print_exc()

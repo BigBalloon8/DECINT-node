@@ -238,7 +238,7 @@ class SmartChainV2:
 
     def append(self, block):
         self.present_chain.append(block)
-        self.position_tracker[block[0][1]] = max(self.position_tracker.values()) + 1
+        self.position_tracker[block[0][1]] = len(self.position_tracker)
 
     def update(self,chain):
         self.present_chain = chain
@@ -252,7 +252,7 @@ class SmartChainV2:
             self.position_tracker[block[0][1]] = i
 
     def pop(self, index):
-        popped = self.present_chain.pop(index)
+        popped = self.present_chain.pop(self.position_tracker[index])
         self.update_pos_tracker()
         return popped
 
@@ -509,6 +509,7 @@ class Blockchain:
 
             new_block = [[block_hash, self.chain[-1][0][1]+1, trans["time"]], trans]
             self.chain.append(new_block)
+            self.chain.save_state()#TODO remove this line
             print("--NEW BLOCK ADDED--")
 
     def add_protocol(self, announcement):
@@ -707,7 +708,7 @@ class Blockchain:
         block_wallets[self.chain[block_index][-1][2]] += self.chain[block_index][-2][0]
 
         self.chain[block_index] = [block_head, block_wallets] + block_tail
-        self.chain.pop(block_index - 1)
+        self.chain.pop(block_index-1)
         self.chain.save_state()
 
 
