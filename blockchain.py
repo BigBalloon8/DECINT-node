@@ -32,8 +32,8 @@ def pub_key_gen(private_key):
     return public_key, hex_key
 
 
-def sign_trans(private_key, transaction):
-    signature = private_key.sign(transaction.encode())
+def sign_trans(private_key, trans):
+    signature = private_key.sign(trans.encode())
     return signature
 
 
@@ -80,7 +80,6 @@ class SmartBlock(object):
         item = self.block.pop(index)
         self.chain_obj[self.block_num] = self.block
         return item
-
 
     def insert(self, index, val):
         self.block.insert(index, val)
@@ -197,7 +196,17 @@ class SmartChain(object):  # to prevent running out of memory access different p
         #print(chunk)
         return chunk
 
+
+class BlockchainError(Exception):
+    pass
+
+
+class SmartChainKeyError(BlockchainError):
+    pass
+
+
 class SmartChainV2:
+
     def __init__(self):
         self.present_chain = [[["c484eb3cfd69ad6c289dcc1e1b671929cdb7b6a63f75a4d21e8d1e126ad8433d", 1, 901.0], {"0": 0.0,"6efa5bfa8a9bfebaacacf9773f830939d8cb4a2129c1a2aaafaaf549": 8388607.0}, ["6db4f412053b48a7f2579ed59d28a7d623ef6ebc9d5023b17cb331b8b92d5be8", 902.0], [0], [True, 903.0, "0"]], [["6db4f412053b48a7f2579ed59d28a7d623ef6ebc9d5023b17cb331b8b92d5be8", 2, 1802.0], {"time": 1802.0, "pub_key": "6efa5bfa8a9bfebaacacf9773f830939d8cb4a2129c1a2aaafaaf549", "stake_amount": 1.0, "sig": "225a69aee9a4a360ba496c11b3e030321371246cfccf86e9ed7c8056"}]]
         self.position_tracker = {1:0, 2:1}
@@ -206,9 +215,16 @@ class SmartChainV2:
         if index < 0:
             return SmartBlock(self.present_chain[index], index, self)
         else:
-            return SmartBlock(self.present_chain[self.position_tracker[index]], index, self)
+            try:
+                return SmartBlock(self.present_chain[self.position_tracker[index]], index, self)
+            except KeyError:
+                print(index)
+                raise SmartChainKeyError
 
-
+    def get_index(self, index):
+        for i, block in enumerate(self.present_chain):
+            if block[0][1] == index:
+                return i
 
     def __setitem__(self, index, value):
         if index < 0:
@@ -217,12 +233,12 @@ class SmartChainV2:
             self.present_chain[self.position_tracker[index]] = value
 
     def __iter__(self):
-        for i, block in zip(self.position_tracker.items(), self.present_chain):
+        for i, block in zip(self.position_tracker.values(), self.present_chain):
             yield SmartBlock(block, i ,self)
 
     def append(self, block):
         self.present_chain.append(block)
-        self.position_tracker[block[0][1]] = len(self.position_tracker)
+        self.position_tracker[block[0][1]] = max(self.position_tracker.values()) + 1
 
     def update(self,chain):
         self.present_chain = chain
@@ -230,11 +246,27 @@ class SmartChainV2:
         for i, block in enumerate(chain):
             self.position_tracker[block[0][1]] = i
 
-    def pop(self,index):
-        return self.present_chain.pop(index)
+    def update_pos_tracker(self):
+        self.position_tracker = {}
+        for i, block in enumerate(copy.copy(self.present_chain)):
+            self.position_tracker[block[0][1]] = i
+
+    def pop(self, index):
+        popped = self.present_chain.pop(index)
+        self.update_pos_tracker()
+        return popped
 
     def __str__(self):
         return str(self.present_chain)
+
+    def __len__(self):
+        return len(self.present_chain)
+
+    def exists(self,index):
+        if index in self.position_tracker.keys():
+            return True
+        else:
+            return False
 
     def save_state(self):
         with open(f"{os.path.dirname(__file__)}/info/blockchain.json", "w") as file:
@@ -244,7 +276,7 @@ class SmartChainV2:
 class Blockchain:
 
     def __init__(self):
-        self.chain = SmartChainV2() #smart chain is just a list
+        self.chain = SmartChainV2()  # smart chain is just a list
 
     def __repr__(self):
         return str(self.chain)  # .replace("]", "]\n")
@@ -675,7 +707,7 @@ class Blockchain:
         block_wallets[self.chain[block_index][-1][2]] += self.chain[block_index][-2][0]
 
         self.chain[block_index] = [block_head, block_wallets] + block_tail
-        self.chain.pop(block_index - 1 )
+        self.chain.pop(block_index - 1)
         self.chain.save_state()
 
 
@@ -729,6 +761,8 @@ class Blockchain:
                         stake_trans.append(stake_removal)
                         with open(f"{os.path.dirname(__file__)}/info/stake_trans.json", "w") as file:
                             json.dump(stake_trans, file)
+        except SmartChainKeyError:
+            self.block_valid(block_index, public_key, time_of_validation, block)
         except:
             while True:
                 traceback.print_exc()
@@ -818,8 +852,8 @@ if __name__ == "__main__":
     # print(trans)
     # key_tester()
     CHAIN = Blockchain()
-    for i in CHAIN:
-        print(i)
+    for a in CHAIN:
+        print(a)
     # print(CHAIN)
     # print(CHAIN.hash_block(CHAIN[-1]))
     # print(read_blockchain().send_blockchain())

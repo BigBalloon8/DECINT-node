@@ -7,12 +7,6 @@ import traceback
 import blockchain
 import copy
 
-"""
-check amount staked by node from that info
-get current block hash seed 
-"""
-
-
 def hash_num(block_hash):
     num = int(block_hash, 16)
     return num
@@ -96,15 +90,18 @@ def am_i_validator(chain):
             my_pub = file.read()
         validated_blocks = []
         while True:
+            time.sleep(1)
             indexes = copy.copy(list(chain.chain.position_tracker.keys()))
-            for i in indexes: #cant loop through chain as chain can by updated during looping
+            if len(indexes) != len(chain):  # durig update of position_tracker
+                continue
+            for i in indexes:  # cant loop through chain as chain can by updated during looping
                 if len(chain[i]) <= 3:
                     continue
                 block_index = i
-                if isinstance(chain[i][-3], list):  # and block[0] != block[-3]: not sure what this is meant to prevent
-                    #print("block has lists")
+                if isinstance(chain[i][-3], list) and chain.chain.exists(i-1):
+                    # print("block has lists")
                     if (not chain[i][-1][0]) and chain[i-1][-1][0]:
-                        #print(f"Block {block_index} is not valid")
+                        # print(f"Block {block_index} is not valid")
                         if (time.time() - float(chain[i][-3][1])) > 10.0:
                             block_time = chain[i][1]["time"]
                             block_hash = chain[i][0][0]
@@ -114,6 +111,9 @@ def am_i_validator(chain):
                                     print(f"I AM VALIDATOR, B{block_index}")
                                     chain.validate(block_index, time_of_valid)
                                     validated_blocks.append(block_index)
+    except blockchain.SmartChainKeyError:  # happens when a block is validated so is looping through incorrect blocks
+        traceback.print_exc()
+        pass
     except:
         while True:
             traceback.print_exc()
