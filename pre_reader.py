@@ -2,6 +2,8 @@ import traceback
 import node
 import blockchain
 import textwrap
+import os
+import json
 
 
 def read(chain):
@@ -25,10 +27,20 @@ def read(chain):
 
                     elif message[1] == "BLOCKCHAIN?":
                         #print("BLOCKCHAIN?")
-                        chunk = "BREQ " + str(chain.return_blockchain()).replace(" ", "")
-                        messages = textwrap.wrap(chunk, 5000)
+                        send_chain = "BREQ " + str(chain.return_blockchain()).replace(" ", "")
+                        messages = textwrap.wrap(send_chain, 5000)
                         for message_ in messages:
                             node.send(message[0], message_)
+
+                    elif message[1] == "GET_STAKE_TRANS":
+                        with open(f"{os.path.dirname(__file__)}/info/stake_trans.json", "r") as file:
+                            stake_trans = json.load(file)
+                        temp_message = "SREQ " + str(stake_trans).replace(" ", "")
+                        messages = textwrap.wrap(temp_message, 5000)
+                        for message_ in messages:
+                            node.send(message[0], message_)
+
+                        
 
 
         except:

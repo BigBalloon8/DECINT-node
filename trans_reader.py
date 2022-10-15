@@ -88,7 +88,6 @@ def read(chain):
                 for trans_line in trans_lines:
                     if "TRANS" in trans_line:
                         trans_handler(trans_line,chain)
-                        #  TODO add trans error handler
                     elif "AI_JOB" in trans_line:
                         AI_job_handler(trans_line,chain)
                     elif "STAKE" in trans_line or "UNSTAKE" in trans_line:

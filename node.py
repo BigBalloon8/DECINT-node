@@ -51,7 +51,7 @@ class message_manager():
                 file.write(f"{address[0]} {message}\n")
         
         else:
-            if (" " not in message and "ONLINE?" not in message and "BLOCKCHAIN?" not in message and "GET_NODES" not in message and "BLOCKCHAINLEN?" not in message) or "VALID" in message:
+            if (" " not in message and "ONLINE?" not in message and "BLOCKCHAIN?" not in message and "GET_NODES" not in message and "BLOCKCHAINLEN?" not in message and "GET_STAKE_TRANS" not in message) or "VALID" in message or "BREQ" in message or "SREQ" in message: #TODO clean this up
                 self.long_messages.append((address[0],message))
 
             else:
@@ -80,7 +80,8 @@ def write_line(message, address):
             with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "r") as file:
                 lines = []
                 for line in file.read().splitlines():
-                    if ("VALID" in line and "]]" not in line) or ("BREQ" in line and ("]]]" not in line or "}]]"not in line)): #TODO this is temporary needs to define between valid and breq
+                    #TODO add NREQ and SREQ protocols to be able to send large messages
+                    if ("VALID" in line and "]]" not in line) or ("BREQ" in line and ("]]]" not in line or "}]]"not in line)) or ("SREQ" in line and "]]" not in line): #TODO this is temporary needs to define between valid and breq
                         lines.append(line + message)
                     else:
                         lines.append(line)
@@ -232,8 +233,7 @@ def dist_request_reader(type_="TRANS"):
     dist_nodes = [node_ for node_ in nodes if node_["node_type"] == "dist"]
 
     trans_protocols = ["TRANS", "STAKE", "UNSTAKE", "AI_JOB_ANNOUNCE"]
-    blockchain_protocols = ["TRANS_INVALID"] #TODO redo this
-
+    blockchain_protocols = [] #TODO remove this
     trans_lines = []
     blockchain_lines = []
     left_over_lines = []
@@ -308,6 +308,7 @@ def request_reader(type_, ip="192.168.68.1"):
     node_lines = []
     nreq_lines = []
     breq_lines = []
+    sreq_lines = [] #TODO finish sreq handling
     online_lines = []
     del_lines = []
     if str(lines) != "[]":
@@ -377,6 +378,7 @@ def request_reader(type_, ip="192.168.68.1"):
                 return breq_lines
             line_remover(breq_lines + del_lines, f"{os.path.dirname(__file__)}/recent_messages.txt")
             return breq_lines
+        elif 
 
 
 async def send_to_all(message, no_dist = False):
@@ -517,6 +519,14 @@ def get_blockchain_no_nodes(chain):
     check = chain.update(new_chain_1, new_chain_2)
     if not check:
         get_blockchain_no_nodes(chain)
+
+    
+def get_stake_trans():
+    print("---GETTING STAKE TRANS---")
+    node = rand_act_node()
+    send(node["ip"], "GET_STAKE_TRANS")
+
+
 
 
 def get_nodes_no_blockchain():
@@ -750,6 +760,12 @@ def message_handler(message):
         # host, BLOCKCHAIN?
         if len(message) != 2:
             raise UnrecognisedArg("number of args given incorrect")
+
+    elif protocol == "GET_STAKE_TRANS":
+        # host, GET_STAKE_TRANS
+        if len(message) != 2:
+            raise UnrecognisedArg("number of args given incorrect")
+
 
     elif protocol == "UPDATE":
         # host, UPDATE, update time, old public key, new public key, port, version, sig

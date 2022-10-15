@@ -101,102 +101,6 @@ class SmartBlock(object):
 
     # def __list__(self):
 
-
-class SmartChain(object):  # to prevent running out of memory access different parts of the list at a time
-    def __init__(self):
-        self.paths = [f"{os.path.dirname(__file__)}/info/blockchain/" + file_path for file_path in
-                      os.listdir(os.path.dirname(__file__) + "/info/blockchain/")]
-
-        # TODO have most recent chunk not have to be opened every time (store in memory as list)
-
-    def read_chunk(self, index):  # problem with 2 threads reading file at the same time
-        while True:
-            try:
-                with open(self.paths[index], "r") as file:
-                    return json.load(file)
-            except json.decoder.JSONDecodeError:
-                pass
-
-    def write_chunk(self, index, chunk):
-        while True:
-            try:
-                with open(self.paths[index], "w") as file:
-                    return json.dump(chunk, file)
-            except json.decoder.JSONDecodeError:  # not sure if this is hte correct acception check later
-                pass
-
-    def __getitem__(self, index):
-        if index >= 0:
-            file_num = index // 10000
-            block_index = index - (file_num * 10000)
-            chunk = self.read_chunk(file_num)
-            return SmartBlock(chunk[block_index], index, self.paths)
-
-        else:
-            chunk = self.read_chunk(-1)
-            if len(chunk) > 1:
-                return SmartBlock(chunk[index], index, self.paths)
-            else:  # you never have to go back than 1 or 2 blocks using -index
-                chunk = self.read_chunk(-2)
-                return SmartBlock(chunk[index + 1], index, self.paths)
-
-    def __len__(self, files=False):
-        chunk = self.read_chunk(-1)
-        return ((len(self.paths) - 1) * 10000) + len(chunk)
-
-    def __next__(self):
-        path_index = 0
-        for path in self.paths:
-            chunk = self.read_chunk(path_index)
-            for block in chunk:
-                yield block
-            path_index += 1
-
-    """
-    def __repr__(self):
-        chain = "["
-        for path in self.paths:
-            with open(path, "r") as file:
-                chain = chain + str(json.load(file))[1:-1] + ","
-        return chain + "]"
-    """
-
-    def __setitem__(self, key, value):
-        if key >= 0:
-            chunk = self.read_chunk(key // 10000)
-            chunk[key - ((key // 10000) * 10000)] = value
-            self.write_chunk(key // 10000, chunk)
-        else:
-            chunk = self.read_chunk(-1)
-            if len(chunk) > 1:
-                chunk[key] = value
-                self.write_chunk(-1, chunk)
-            else:
-                chunk = self.read_chunk(-2)
-                chunk[key + 1] = value
-                self.write_chunk(-2, chunk)
-
-    def append(self, block):
-        with open(self.paths[-1], "r") as file:
-            chunk = json.load(file)
-        if len(chunk) == 10000:
-            with open(f"{os.path.dirname(__file__)}/info/blockchain/blockchain{len(self.paths)}.json",
-                      "w+") as file:
-                json.dump([block], file)
-            self.paths.append(f"{os.path.dirname(__file__)}/info/blockchain/blockchain{len(self.paths)}.json")
-        else:
-            with open(self.paths[-1], "w") as file:
-                json.dump(chunk + [block], file)
-
-    def update(self, chunk_num, chunk):
-        self.write_chunk(chunk_num, chunk)
-
-    def return_chunk(self, chunk_num):
-        chunk = self.read_chunk(chunk_num)
-        #print(chunk)
-        return chunk
-
-
 class BlockchainError(Exception):
     pass
 
@@ -345,7 +249,7 @@ class Blockchain:
         hex_hashed = hashed.hexdigest()
         return hex_hashed
 
-    def update(self, new_chain1, new_chain2): #TODO update for new blockchain system
+    def update(self, new_chain1, new_chain2):
         index = 0
         for block in new_chain1[::-1]:  # removing invalid blocks and comparing with other
             if isinstance(block[-1], list):
@@ -509,7 +413,6 @@ class Blockchain:
 
             new_block = [[block_hash, self.chain[-1][0][1]+1, trans["time"]], trans]
             self.chain.append(new_block)
-            self.chain.save_state()#TODO remove this line
             print("--NEW BLOCK ADDED--")
 
     def add_protocol(self, announcement):
@@ -560,7 +463,6 @@ class Blockchain:
             print("--NEW BLOCK--")
 
     def validate(self, block_index: int, time_of_validation: float, validating: bool = True, block=None):
-        # TODO check block hash is the same as other nodes?
         # SEND transactions to other nodes
         valid_trans = []
         if block is None:
@@ -755,7 +657,7 @@ class Blockchain:
                             self.temp_to_final(block_index)
 
                     else:
-                        print("LIAR WAS FOUND")
+                        print("LIAR WAS FOUND") # UPDATE this to add late validators to liars
                         stake_removal = f"LIAR {ran_node['pub_key']} {ran_node['ip']}"
                         with open(f"{os.path.dirname(__file__)}/info/stake_trans.json", "r") as file:
                             stake_trans = json.load(file)
