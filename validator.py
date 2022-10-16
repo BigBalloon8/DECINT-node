@@ -102,7 +102,7 @@ def am_i_validator(chain):
                     if isinstance(chain[i][-3], list):
                         # print("block has lists")
                         if (not chain[i][-1][0]):
-                            if chain[i-1][-1][0]:  # cant be on line above 
+                            if chain[i-1][-1][0]:  # cant be on line above
                                 # print(f"Block {block_index} is not valid")
                                 if (time.time() - float(chain[i][-3][1])) > 10.0:
                                     block_time = chain[i][1]["time"]
@@ -113,7 +113,7 @@ def am_i_validator(chain):
                                             print(f"I AM VALIDATOR, B{block_index}")
                                             chain.validate(block_index, time_of_valid)
                                             validated_blocks.append(block_index)
-            except blockchain.SmartChainKeyError:  # happens when a block is validated so is looping through incorrect blocks
+            except blockchain.SmartChainKeyError:
                 traceback.print_exc()
                 continue
     except:

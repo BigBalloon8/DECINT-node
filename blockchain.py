@@ -570,7 +570,7 @@ class Blockchain:
                 else:
                     valid_trans.append(trans)
 
-        if validating: #TODO give same treatment to BREQ
+        if validating: 
             message = f"VALID {str(block_index)} {str(time_of_validation)} {str(valid_trans).replace(' ','')}"
             message_len = len(message)
             if message_len < 5000:
@@ -579,7 +579,7 @@ class Blockchain:
                 messages = textwrap.wrap(message, 5000)
                 for message_ in messages:
                     asyncio.run(node.send_to_all(message_, no_dist=True))
-                    time.sleep(1)
+                    time.sleep(0.1)
             time.sleep(5)  # stop sending multiple VALIDs to dist node
 
         if not validating:

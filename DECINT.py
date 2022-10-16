@@ -27,7 +27,7 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
     if install:
         receive = Process(target=node.receive)
         receive.start()
-        node.get_nodes_no_blockchain()
+        node.get_nodes()
         with open(f"{os.path.dirname(__file__)}./info/Public_key.txt", "r") as file:
             key = file.read()
             print(f"key:{key}.")
@@ -40,7 +40,7 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
     elif update:
         receive = Process(target=node.receive)
         receive.start()
-        node.get_nodes_no_blockchain()
+        node.get_nodes()
         click.echo("In order to update your Node please enter a bit of information")
         time.sleep(2)
         with open(f"{os.path.dirname(__file__)}/info/Public_key.txt", "r") as file:
@@ -60,7 +60,7 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
     elif delete:
         receive = Process(target=node.receive)
         receive.start()
-        node.get_nodes_no_blockchain()
+        node.get_nodes()
         click.echo("In order to delete your Node please enter a bit of information")
         time.sleep(2)
         with open(f"{os.path.dirname(__file__)}/info/Public_key.txt", "r") as file:
@@ -72,7 +72,7 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
     elif stake:
         receive = Process(target=node.receive)
         receive.start()
-        node.get_nodes_no_blockchain()
+        node.get_nodes()
         priv_key = click.prompt("Private Key", type=str)
         click.echo(f"{[priv_key]}")
         with open(f"{os.path.dirname(__file__)}/info/Public_key.txt", "r") as file:
@@ -96,7 +96,7 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
     elif unstake:
         receive = Process(target=node.receive)
         receive.start()
-        node.get_nodes_no_blockchain()
+        node.get_nodes()
         priv_key = input("Private Key: ")
         click.echo(f"{[type(priv_key)]}")
         with open(f"{os.path.dirname(__file__)}/info/Public_key.txt", "r") as file:
@@ -125,7 +125,7 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
     elif trans:
         receive = Process(target=node.receive)
         receive.start()
-        node.get_nodes_no_blockchain()
+        node.get_nodes()
         priv_key = click.prompt("Private Key", type=str)
         with open(f"{os.path.dirname(__file__)}/info/Public_key.txt", "r") as file:
             pub_key = file.read()
@@ -147,7 +147,7 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
     elif test_install:
         receive = Process(target=node.receive)
         receive.start()
-        node.get_nodes_no_blockchain()
+        node.get_nodes()
         install_decint.test_install()
         receive.terminate()
         time.sleep(0.01)
@@ -168,7 +168,7 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
     elif test_trans:
         receive = Process(target=node.receive)
         receive.start()
-        node.get_nodes_no_blockchain()
+        node.get_nodes()
         receive.terminate()
         blockchain.tester()
 

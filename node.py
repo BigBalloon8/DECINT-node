@@ -12,6 +12,7 @@ import asyncio
 import os
 import json
 from threading import Thread
+import copy
 
 __version__ = "1.0"
 
@@ -22,76 +23,51 @@ def receive():
     message is split into array the first value the type of message the second value is the message
     """
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    #server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) #UDP
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server.bind(("", 1379))
     server.listen()
-    message_handle = message_manager()
+    message_handle = MessageManager()
     while True:
         try:
             client, address = server.accept()
-            message = client.recv(2**16).decode("utf-8")  # .split(" ")
+            message = client.recv(2 ** 16).decode("utf-8")  # .split(" ")
             if "\n" in message:
                 continue
             print(f"Message from {address} , {message}\n")
-            #thread = Thread(target=message_handle.write, args=(message, address,))
-            #thread.start()
             message_handle.write(address, message)
             continue
         except Exception as e:
             print(e)
 
-class message_manager():
+
+class MessageManager:
     def __init__(self):
         self.long_messages = []
-    
-    def write(self,address, message):
+
+    def write(self, address, message):
         if "DIST" in message:
             with open(f"{os.path.dirname(__file__)}/dist_messages.txt", "a") as file:
                 file.write(f"{address[0]} {message}\n")
-        
+
         else:
-            if (" " not in message and "ONLINE?" not in message and "BLOCKCHAIN?" not in message and "GET_NODES" not in message and "BLOCKCHAINLEN?" not in message and "GET_STAKE_TRANS" not in message) or "VALID" in message or "BREQ" in message or "SREQ" in message: #TODO clean this up
-                self.long_messages.append((address[0],message))
+            if (
+                    " " not in message and "ONLINE?" not in message and "BLOCKCHAIN?" not in message and "GET_NODES" not in message and "BLOCKCHAINLEN?" not in message and "GET_STAKE_TRANS" not in message) or "VALID" in message or "BREQ" in message or "SREQ" in message:  # TODO clean this up
+                self.long_messages.append((address[0], message))
 
             else:
-                #print("file written")
                 with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "a+") as file:
                     file.write(f"{address[0]} {message}\n")
 
         for i in self.long_messages:
-            if "]]" in i[1] or "]]]"in i[1] or "}]]" in i[1]:
-                if len([j for j in self.long_messages if j[0] == i[0]]) == len(self.long_messages):
-                    with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "a+") as file:
-                        long_write_lines = ''.join([k[1] for k in self.long_messages if k[0]== i[0]])
-                        file.write(f"{i[0]} {long_write_lines}\n")
-                        for m in [k for k in self.long_messages if k[0]== i[0]]: #TODO optimize this
-                            self.long_messages.remove(m)
+            if "]]" in i[1] or "]]]" in i[1] or "}]]" in i[1]:
+                # if len([j for j in self.long_messages if j[0] == i[0]]) == len(self.long_messages):
+                with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "a+") as file:
+                    complete_message = [k[1] for k in self.long_messages if k[0] == i[0]]
+                    long_write_lines = ''.join(complete_message)
+                    file.write(f"{i[0]} {long_write_lines}\n")
+                    for m in complete_message:
+                        self.long_messages.remove(m)
 
-
-def write_line(message, address):
-    if "DIST" in message:
-        with open(f"{os.path.dirname(__file__)}/dist_messages.txt", "a") as file:
-            file.write(f"{address[0]} {message}\n")
-            # file.write(f"{message.replace('DIST ','')}\n")
-    else:
-        #TODO stop spam DOS attack (delete fake half complete valid messages)
-        if " " not in message and "ONLINE?" not in message and "BLOCKCHAIN?" not in message and "GET_NODES" not in message and "BLOCKCHAINLEN?" not in message:
-            with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "r") as file:
-                lines = []
-                for line in file.read().splitlines():
-                    #TODO add NREQ and SREQ protocols to be able to send large messages
-                    if ("VALID" in line and "]]" not in line) or ("BREQ" in line and ("]]]" not in line or "}]]"not in line)) or ("SREQ" in line and "]]" not in line): #TODO this is temporary needs to define between valid and breq
-                        lines.append(line + message)
-                    else:
-                        lines.append(line)
-            open(f"{os.path.dirname(__file__)}/recent_messages.txt", "w").close()
-            with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "a+") as file:
-                for line in lines:
-                    file.write(line + "\n")
-        else:
-            with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "a+") as file:
-                file.write(f"{address[0]} {message}\n")
 
 # send to node
 def send(host, message, port=1379, send_all=False):
@@ -100,8 +76,8 @@ def send(host, message, port=1379, send_all=False):
     tries the default port and if it doesn't work search for actual port
     this process is skipped if send to all for speed
     """
-    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM) #TCP
-    #client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) #UDP
+    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
     try:
         client.connect((host, port))
         client.sendall(message.encode("utf-8"))
@@ -122,6 +98,7 @@ def send(host, message, port=1379, send_all=False):
             return "node offline"
     client.close()
 
+
 async def async_send(host, message, port=1379, send_all=False):
     """
     sends a message to the given host
@@ -129,8 +106,6 @@ async def async_send(host, message, port=1379, send_all=False):
     this process is skipped if send to all for speed
     """
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    #client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) #UDP
-    message_size = len(message)
     try:
         client.connect((host, port))
         client.sendall(message.encode("utf-8"))
@@ -154,15 +129,13 @@ async def async_send(host, message, port=1379, send_all=False):
 
 # check if nodes online
 def online(address):
-    """
-    asks if a node is online and if it is it returns yh
-    """
-    # socket.setdefaulttimeout(1.0)
+    socket.setdefaulttimeout(1.0)
     try:
         send(address, "ONLINE?")
+        socket.setdefaulttimeout(3.0)
         return True
-    except Exception: #TODO be more specific
-        # socket.setdefaulttimeout(3.0)
+    except TimeoutError:
+        socket.setdefaulttimeout(3.0)
         return False
 
 
@@ -172,10 +145,7 @@ def send_to_dist(message):
     """
     with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
         all_nodes = json.load(file)
-    dist_nodes = []
-    for d_node in all_nodes: #TODO save dist nodes to seperate file
-        if d_node["node_type"] == "dist":
-            dist_nodes.append(d_node)
+    dist_nodes = [node for node in all_nodes if node["node_type"] == "dist"]
     d_node = random.choice(dist_nodes)
     send(d_node["ip"], message)
 
@@ -209,6 +179,7 @@ def rand_act_node(num_nodes=1, type_=None):
     else:
         return nodes
 
+
 def line_remover(del_lines, file_path):
     with open(file_path, "r") as file:
         lines = file.readlines()
@@ -233,9 +204,8 @@ def dist_request_reader(type_="TRANS"):
     dist_nodes = [node_ for node_ in nodes if node_["node_type"] == "dist"]
 
     trans_protocols = ["TRANS", "STAKE", "UNSTAKE", "AI_JOB_ANNOUNCE"]
-    blockchain_protocols = [] #TODO remove this
+
     trans_lines = []
-    blockchain_lines = []
     left_over_lines = []
 
     trans_messages = []
@@ -265,7 +235,7 @@ def dist_request_reader(type_="TRANS"):
             message.pop(0)
             message.pop(0)
 
-            if message[0] == "" or message[0] == "\n": #TODO What this doing
+            if message[0] == "" or message[0] == "\n":
                 lines.remove(" ".join(message))
 
             elif message[1] in trans_protocols:
@@ -280,19 +250,13 @@ def dist_request_reader(type_="TRANS"):
                 left_over_lines.append(line)
                 blockchain_messages.append(" ".join(message))
 
-    if type_ == "BLOCKCHAIN": #TODO redo line rewrite system
-        if len(blockchain_messages) == 0:
-            return blockchain_messages
-        line_remover(blockchain_lines, f"{os.path.dirname(__file__)}/dist_messages.txt")
-        return blockchain_messages
-
     if type_ == "TRANS":
         if len(trans_messages) == 0:
             return trans_messages
         line_remover(trans_lines, f"{os.path.dirname(__file__)}/dist_messages.txt")
         return trans_messages
 
-    if type_ == "LEFT_OVER":
+    elif type_ == "LEFT_OVER":
         line_remover(left_over_lines, f"{os.path.dirname(__file__)}/dist_messages.txt")
 
 
@@ -303,12 +267,12 @@ def request_reader(type_, ip="192.168.68.1"):
     with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "r") as file:
         lines = file.read().splitlines()
     breq_protocol = ["BREQ", "BLENREQ"]
-    pre_protocol = ["ONLINE?", "GET_NODES", "BLOCKCHAIN?", "BLOCKCHAINLEN?"]
+    pre_protocol = ["ONLINE?", "GET_NODES", "BLOCKCHAIN?", "BLOCKCHAINLEN?", "GET_STAKE_TRANS"]
 
     node_lines = []
     nreq_lines = []
     breq_lines = []
-    sreq_lines = [] #TODO finish sreq handling
+    sreq_lines = []
     online_lines = []
     del_lines = []
     if str(lines) != "[]":
@@ -317,7 +281,7 @@ def request_reader(type_, ip="192.168.68.1"):
             try:
                 message_handler(line)
             except NodeError as e:
-                print("ERROR LINE: ",[" ".join(line)], e)
+                print("ERROR LINE: ", [" ".join(line)], e)
                 send(" ".join(line), f"ERROR {e}")
                 del_lines.append(" ".join(line))
                 continue
@@ -337,6 +301,17 @@ def request_reader(type_, ip="192.168.68.1"):
                 try:
                     ast.literal_eval(line[2])
                     breq_lines.append(" ".join(line))
+                except ValueError:
+                    node_lines.append(" ".join(line))
+                except IndexError:
+                    node_lines.append(" ".join(line))
+                except SyntaxError:
+                    pass
+
+            elif line[1] == "SREQ":
+                try:
+                    ast.literal_eval(line[2])
+                    sreq_lines.append(" ".join(line))
                 except ValueError:
                     node_lines.append(" ".join(line))
                 except IndexError:
@@ -378,10 +353,15 @@ def request_reader(type_, ip="192.168.68.1"):
                 return breq_lines
             line_remover(breq_lines + del_lines, f"{os.path.dirname(__file__)}/recent_messages.txt")
             return breq_lines
-        elif 
+
+        elif type_ == "SREQ":
+            if len(sreq_lines) == 0:
+                return sreq_lines
+            line_remover(sreq_lines + del_lines, f"{os.path.dirname(__file__)}/recent_messages.txt")
+            return sreq_lines
 
 
-async def send_to_all(message, no_dist = False):
+async def send_to_all(message, no_dist=False):
     """
     sends to all nodes
     """
@@ -399,22 +379,22 @@ async def send_to_all(message, no_dist = False):
         result = await _
 
 
-def announce(pub_key, port, version, node_type, priv_key):
+def announce(pub_key, port, version_, node_type, priv_key):
     announcement_time = str(time.time())
     if not isinstance(priv_key, bytes):
         priv_key = SigningKey.from_string(bytes.fromhex(priv_key), curve=SECP112r2)
     sig = str(priv_key.sign(announcement_time.encode()).hex())
-    asyncio.run(send_to_all(f"HELLO {announcement_time} {pub_key} {str(port)} {version} {node_type} {sig}"))
+    asyncio.run(send_to_all(f"HELLO {announcement_time} {pub_key} {str(port)} {version_} {node_type} {sig}"))
 
 
-def update(old_key, port, version, priv_key, new_key=None):
+def update(old_key, port, version_, priv_key, new_key=None):
     if not new_key:
         new_key = old_key
     update_time = str(time.time())
     if not isinstance(priv_key, bytes):
         priv_key = SigningKey.from_string(bytes.fromhex(priv_key), curve=SECP112r2)
     sig = str(priv_key.sign(update_time.encode()).hex())
-    asyncio.run(send_to_all(f"UPDATE {update_time} {old_key} {new_key} {str(port)} {version} {sig}"))
+    asyncio.run(send_to_all(f"UPDATE {update_time} {old_key} {new_key} {str(port)} {version_} {sig}"))
     with open(f"{os.path.dirname(__file__)}/info/Public_key.txt", "w") as file:
         file.write(new_key)
 
@@ -444,46 +424,28 @@ def unstake(priv_key, amount):
 
 
 def updator(chain):  # send ask the website for Blockchain as most up to date
-    # TODO add stake updator
-    node = rand_act_node()
-    print("---GETTING NODES---")
-    time.sleep(0.1)
-    send(node["ip"], "GET_NODES")
-    tries = 0
-    while True:
-        if tries == 10:
-            quit() #quit(python ask to retry)
-        time.sleep(2)
-        lines = request_reader("NREQ")
-        if lines:
-            print(f"NRQ LINE: {lines[0]}")
-            line = lines[0].split(" ")
-            nodes = line[2]
-            nodes = ast.literal_eval(nodes)
-            if line[0] == node["ip"]:
-                with open(f"{os.path.dirname(__file__)}/info/nodes.json", "w") as file:
-                    json.dump(nodes, file)
-                # print("---NODES RECEIVED---")
-                print("NODES UPDATED SUCCESSFULLY")
-                break
-        else:
-            tries += 1
-            continue
-
-    get_blockchain_no_nodes(chain)
+    nodes = []
+    nodes = get_nodes(nodes)
+    nodes = get_blockchain(chain, nodes)
+    get_stake_trans(nodes)
 
 
-
-def get_blockchain_no_nodes(chain):
+def get_blockchain(chain, nodes=[]):
     print("---GETTING BLOCKCHAIN---")
-
-    node = rand_act_node(type_="Blockchain")
+    pre_nodes = copy.copy(nodes)
+    while True:
+        node = rand_act_node(type_="Blockchain")
+        if node in nodes:
+            break  # TODO remoev all these breaks for testing
+            continue
+        else:
+            break
     time.sleep(1)
     send(node["ip"], "BLOCKCHAIN?")
     tries = 0
     while True:
         if tries == 10:
-            get_blockchain_no_nodes(chain)
+            get_blockchain(chain, pre_nodes)
             return
         time.sleep(2)
         lines = request_reader("BREQ")
@@ -496,14 +458,20 @@ def get_blockchain_no_nodes(chain):
         else:
             tries += 1
     time.sleep(1)
-
-    node = rand_act_node(type_="Blockchain")
+    nodes.append(node)
+    while True:
+        node = rand_act_node(type_="Blockchain")
+        if node in nodes:
+            break
+            continue
+        else:
+            break
     time.sleep(0.1)
     send(node["ip"], "BLOCKCHAIN?")
     tries = 0
     while True:
         if tries == 10:
-            get_blockchain_no_nodes(chain)
+            get_blockchain(chain, pre_nodes)
             return
         time.sleep(2)
         lines = request_reader("BREQ")
@@ -515,44 +483,130 @@ def get_blockchain_no_nodes(chain):
                 break
         else:
             tries += 1
-
+    nodes.append(node)
     check = chain.update(new_chain_1, new_chain_2)
     if not check:
-        get_blockchain_no_nodes(chain)
+        return get_blockchain(chain, pre_nodes)
+    else:
+        return nodes
 
-    
-def get_stake_trans():
+
+def get_stake_trans(nodes=[]):
     print("---GETTING STAKE TRANS---")
-    node = rand_act_node()
+    pre_nodes = copy.copy(nodes)
+    while True:
+        node = rand_act_node(type_="Blockchain")
+        if node in nodes:
+            break
+            continue
+        else:
+            break
     send(node["ip"], "GET_STAKE_TRANS")
+    tries = 0
+    while True:
+        if tries == 10:
+            return get_stake_trans(pre_nodes)
+        time.sleep(1)
+        lines = request_reader("SREQ")
+        if lines:
+            line = lines[0].split(" ")
+            if line[0] == node["ip"]:
+                stake_trans_1 = ast.literal_eval(line[2])
+                print("---STAKE TRANS 1 RECEIVED---")
+                break
+        else:
+            tries += 1
+    nodes.append(node)
+    while True:
+        node = rand_act_node(type_="Blockchain")
+        if node in nodes:
+            break
+            continue
+        else:
+            break
+    send(node["ip"], "GET_STAKE_TRANS")
+    tries = 0
+    while True:
+        if tries == 10:
+            return get_stake_trans(pre_nodes)
+        time.sleep(1)
+        lines = request_reader("SREQ")
+        if lines:
+            line = lines[0].split(" ")
+            if line[0] == node["ip"]:
+                stake_trans_2 = ast.literal_eval(line[2])
+                print("---STAKE TRANS 2 RECEIVED---")
+                break
+        else:
+            tries += 1
+    nodes.append(node)
+    if stake_trans_1 == stake_trans_2:
+        with open(f"{os.path.dirname(__file__)}/info/stake_trans.json", "w") as file:
+            json.dump(stake_trans_1, file)
+        print("---STAKE TRANS UPDATED---")
+        return nodes
+    else:
+        return get_stake_trans(pre_nodes)
 
 
-
-
-def get_nodes_no_blockchain():
+def get_nodes(nodes=[]):
     print("---GETTING NODES---")
-    node = rand_act_node()
+    pre_nodes = copy.copy(nodes)
+    while True:
+        node = rand_act_node()
+        if node in nodes:
+            break
+            continue
+        else:
+            break
     time.sleep(0.1)
     send(node["ip"], "GET_NODES")
     tries = 0
-    while tries < 10:
+    while True:
+        if tries == 10:
+            return get_nodes(pre_nodes)
         time.sleep(2)
         lines = request_reader("NREQ")
         if lines:
-            for line in lines:
-                #print(f"NODE LINE: {line}")
-                line = line.split(" ")
-                nodes = line[2]
-                nodes = ast.literal_eval(nodes)
-                if line[0] == node["ip"]:
-                    with open(f"{os.path.dirname(__file__)}/info/nodes.json", "w") as file:
-                        json.dump(nodes, file)
-                    print("---NODES RECEIVED---")
-                    print("NODES UPDATED SUCCESSFULLY")
-                    return
+            line = lines[0].split(" ")
+            if line[0] == node["ip"]:
+                nodes_1 = ast.literal_eval(line[2])
+                print("---NODES 1 RECEIVED---")
+                break
         else:
             tries += 1
+    nodes.append(node)
+    while True:
+        node = rand_act_node()
+        if node in nodes:
+            break
             continue
+        else:
+            break
+    time.sleep(0.1)
+    send(node["ip"], "GET_NODES")
+    tries = 0
+    while True:
+        if tries == 10:
+            return get_nodes(pre_nodes)
+        time.sleep(2)
+        lines = request_reader("NREQ")
+        if lines:
+            line = lines[0].split(" ")
+            if line[0] == node["ip"]:
+                nodes_2 = ast.literal_eval(line[2])
+                print("---NODES 2 RECEIVED---")
+                break
+        else:
+            tries += 1
+    nodes.append(node)
+    if nodes_1 == nodes_2:
+        with open(f"{os.path.dirname(__file__)}/info/nodes.json", "w") as file:
+            json.dump(nodes_1, file)
+        print("---NODES UPDATED---")
+        return nodes
+    else:
+        return get_nodes(pre_nodes)
 
 
 def send_node(host):
@@ -568,14 +622,14 @@ def new_node(initiation_time, ip, pub_key, port, node_version, node_type, sig):
         nodes = json.load(file)
     public_key = VerifyingKey.from_string(bytes.fromhex(pub_key), curve=SECP112r2)
     if public_key.verify(bytes.fromhex(sig), str(initiation_time).encode()):
-        new_node = {"time": initiation_time, "ip": ip, "pub_key": pub_key, "port": port, "version": node_version,
-                    "node_type": node_type}
+        new_node_ = {"time": initiation_time, "ip": ip, "pub_key": pub_key, "port": port, "version": node_version,
+                     "node_type": node_type}
         for node in nodes:
             if node["pub_key"] == pub_key:
                 return
             if node["ip"] == ip:
                 return
-        nodes.append(new_node)
+        nodes.append(new_node_)
         with open(f"{os.path.dirname(__file__)}/info/nodes.json", "w") as file:
             json.dump(nodes, file)
         print("---NODE ADDED---")
@@ -691,7 +745,7 @@ def message_handler(message):
     BLOCKCHAINLEN? <ip>
     BLENREQ <ip> <number_of_chunks>
     """
-    len_1_messages = ["ONLINE?", "BLOCKCHAIN?", "GET_NODES", "BLOCKCHAINLEN?"]
+    len_1_messages = ["ONLINE?", "BLOCKCHAIN?", "GET_NODES", "BLOCKCHAINLEN?", "GET_STAKE_TRANS"]
     if len(message) == 2:
         if message[1] not in len_1_messages:
             raise UnrecognisedArg("No Protocol Found")
@@ -766,7 +820,6 @@ def message_handler(message):
         if len(message) != 2:
             raise UnrecognisedArg("number of args given incorrect")
 
-
     elif protocol == "UPDATE":
         # host, UPDATE, update time, old public key, new public key, port, version, sig
         if len(message) != 7:
@@ -817,6 +870,14 @@ def message_handler(message):
             raise ValueTypeError("Blockchain not given as Blockchain")
         except SyntaxError:
             raise NotCompleteError("Blockchain not complete yet")
+
+    elif protocol == "SREQ":
+        try:
+            ast.literal_eval(message[2])
+        except ValueError:
+            raise ValueTypeError("Stake trans not given as Stake trans")
+        except SyntaxError:
+            raise NotCompleteError("Stake trans not complete yet")
 
     elif protocol == "NREQ":
         # host, NREQ, nodes
@@ -895,7 +956,7 @@ def message_handler(message):
         if not check_int(message[2]):
             raise ValueTypeError("Blockchain length not given as int")
 
-    elif len(message) == 2: #will have to be part of a large message
+    elif len(message) == 2:  # will have to be part of a large message
         pass
 
     else:
