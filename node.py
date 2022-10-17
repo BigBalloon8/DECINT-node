@@ -3,6 +3,7 @@ node
 """
 import socket
 import random
+from termios import TIOCPKT_FLUSHWRITE
 import time
 import ast
 import blockchain
@@ -13,6 +14,8 @@ import os
 import json
 from threading import Thread
 import copy
+import traceback
+
 
 __version__ = "1.0"
 
@@ -37,12 +40,81 @@ def receive():
             message_handle.write(address, message)
             continue
         except Exception as e:
-            print(e)
+            traceback.print_exc()
+
+def timeout_(func):
+    def decorated_func(self,*args):
+        removed = 0
+        if len(self.t_list) == 0:
+            return
+        for i in range(len(self.t_list)):
+            if time.time()-self.times[i-removed] > 5.0:
+                self.t_list.pop(i-removed)
+                self.times.pop(i-removed)
+                removed +=1
+    return decorated_func
+
+def timeout_inner(self):
+    removed = 0
+    if len(self.t_list) == 0:
+        return
+    for i in range(len(self.t_list)):
+        if time.time()-self.times[i-removed] > 5.0:
+            self.t_list.pop(i-removed)
+            self.times.pop(i-removed)
+            removed +=1
+
+class TimeOutList():
+    def __init__(self):
+        self.t_list = list()
+        self.times = list()
+    
+    def timeout(self):
+        removed = 0
+        if len(self.t_list) == 0:
+            return
+        for i in range(len(self.t_list)):
+            if time.time()-self.times[i-removed] > 5.0:
+                self.t_list.pop(i-removed)
+                self.times.pop(i-removed)
+                removed +=1
+    
+    def __len__(self):
+        return len(self.t_list)
+    
+    def append(self, value):
+        self.t_list.append(value)
+        self.times.append(time.time())
+
+    def __setitem__(self,index, value):
+        return self.t_list.__setitem__(index,value)
+
+    def __getitem__(self, index):
+        self.timeout()
+        return self.t_list.__getitem__(index)
+
+    def remove(self, value):
+        self.times.pop(self.t_list.index(value))
+        self.t_list.remove(value)
+        
+    def __iter__(self):
+        self.timeout()
+        for i in self.t_list:
+            yield i
+
+    def __delitem__(self, index):
+        self.t_list.__delitem__(index)
+        self.times.__delitem__(index)
+
+    def insert(self, index, value):
+        self.t_list.insert(index, value)
+        self.times.insert(index, time.time())
+        
 
 
 class MessageManager:
     def __init__(self):
-        self.long_messages = []
+        self.long_messages = TimeOutList()
 
     def write(self, address, message):
         if "DIST" in message:
@@ -62,9 +134,10 @@ class MessageManager:
             if "]]" in i[1] or "]]]" in i[1] or "}]]" in i[1]:
                 # if len([j for j in self.long_messages if j[0] == i[0]]) == len(self.long_messages):
                 with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "a+") as file:
-                    complete_message = [k[1] for k in self.long_messages if k[0] == i[0]]
-                    long_write_lines = ''.join(complete_message)
+                    complete_message = [k for k in self.long_messages.t_list if k[0] == i[0]]
+                    long_write_lines = ''.join([l[1] for l in complete_message])
                     file.write(f"{i[0]} {long_write_lines}\n")
+                    #print(complete_message, "\n\n", self.long_messages.t_list)
                     for m in complete_message:
                         self.long_messages.remove(m)
 
@@ -129,13 +202,10 @@ async def async_send(host, message, port=1379, send_all=False):
 
 # check if nodes online
 def online(address):
-    socket.setdefaulttimeout(1.0)
     try:
-        send(address, "ONLINE?")
-        socket.setdefaulttimeout(3.0)
+        send(address, "ONLINE?") #TODO add a way to timeout
         return True
     except TimeoutError:
-        socket.setdefaulttimeout(3.0)
         return False
 
 
@@ -209,7 +279,6 @@ def dist_request_reader(type_="TRANS"):
     left_over_lines = []
 
     trans_messages = []
-    blockchain_messages = []
     # left_over_messages = []
 
     for line in lines:
@@ -242,13 +311,10 @@ def dist_request_reader(type_="TRANS"):
                 trans_lines.append(line)
                 trans_messages.append(" ".join(message))
 
-            elif message[1] in blockchain_protocols:
-                blockchain_lines.append(line)
-                blockchain_messages.append(" ".join(message))
 
             else:
                 left_over_lines.append(line)
-                blockchain_messages.append(" ".join(message))
+
 
     if type_ == "TRANS":
         if len(trans_messages) == 0:
@@ -964,4 +1030,17 @@ def message_handler(message):
 
 
 if __name__ == '__main__':
-    line_remover(["abcdef"], f"{os.path.dirname(__file__)}/recent_messages.txt")
+    arr = TimeOutList()
+
+    for i in [1,2,3,4,5,6]:
+        arr.append(i)
+    time.sleep(1)
+    print(arr.t_list)
+
+    time.sleep(10)
+    
+    if arr:
+        for i in arr:
+            print([i])
+
+    print(arr.t_list)
