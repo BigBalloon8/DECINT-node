@@ -64,7 +64,7 @@ def timeout_inner(self):
             self.times.pop(i-removed)
             removed +=1
 
-class TimeOutList():
+class TimeOutList(): #TODO test in working simulation
     def __init__(self):
         self.t_list = list()
         self.times = list()
