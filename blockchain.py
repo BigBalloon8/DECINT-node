@@ -38,9 +38,9 @@ def sign_trans(private_key, trans):
 
 
 def quick_sort_block(block):
-    less = []
-    equal = []
-    greater = []
+    less = list()
+    equal = list()
+    greater = list()
     # print(block)
 
     if len(block) > 1:
@@ -100,6 +100,7 @@ class SmartBlock(object):
         return str(self.block)
 
     # def __list__(self):
+
 
 class BlockchainError(Exception):
     pass
@@ -469,7 +470,7 @@ class Blockchain:
             block = self.chain[block_index]
             #print("VALDATING_BLOCK: ", block)
 
-        positions = [0,-1,-2,-3]
+        positions = [0, -1, -2, -3]
         for i in positions:
             if not isinstance(block[i], list):
                 if not validating:
@@ -570,7 +571,7 @@ class Blockchain:
                 else:
                     valid_trans.append(trans)
 
-        if validating: 
+        if validating:
             message = f"VALID {str(block_index)} {str(time_of_validation)} {str(valid_trans).replace(' ','')}"
             message_len = len(message)
             if message_len < 5000:
