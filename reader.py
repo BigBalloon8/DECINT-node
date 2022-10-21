@@ -12,7 +12,6 @@ def read(chain):
         while True:
             node.dist_request_reader("LEFT_OVER")  # clear strange dist messages
             node_lines = node.request_reader("NODE")
-            dist_blockchain_lines = node.dist_request_reader("BLOCKCHAIN")
             if node_lines:
                 #print(f"NODE LINES: {node_lines}\n")
                 for message in node_lines:
@@ -36,19 +35,6 @@ def read(chain):
 
                     else:
                         pass
-            """
-            Not in use
-
-            if dist_blockchain_lines:
-                for message in dist_blockchain_lines:
-                    message = message.split(" ")
-                    try:
-                        node.message_handler(message) 
-                    except Exception as e:
-                        node.send(message[0], f"ERROR {e}")
-                        print(message[1], e)
-                        continue
-            """
     except:
         import time
         while True:

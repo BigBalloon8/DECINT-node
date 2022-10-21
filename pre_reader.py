@@ -15,7 +15,8 @@ def read(chain):
                 for message in online_lines:
                     if message and message != " ":
                         message = message.split(" ")
-
+                    else:
+                        continue
                     if message[1] == "ONLINE?":
                         pass
                         #print(f"yh sent to {message[0]}")
@@ -40,7 +41,7 @@ def read(chain):
                         for message_ in messages:
                             node.send(message[0], message_)
 
-                        
+
 
 
         except:

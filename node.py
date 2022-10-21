@@ -3,7 +3,6 @@ node
 """
 import socket
 import random
-from termios import TIOCPKT_FLUSHWRITE
 import time
 import ast
 import blockchain
@@ -42,33 +41,12 @@ def receive():
         except Exception as e:
             traceback.print_exc()
 
-def timeout_(func):
-    def decorated_func(self,*args):
-        removed = 0
-        if len(self.t_list) == 0:
-            return
-        for i in range(len(self.t_list)):
-            if time.time()-self.times[i-removed] > 5.0:
-                self.t_list.pop(i-removed)
-                self.times.pop(i-removed)
-                removed +=1
-    return decorated_func
-
-def timeout_inner(self):
-    removed = 0
-    if len(self.t_list) == 0:
-        return
-    for i in range(len(self.t_list)):
-        if time.time()-self.times[i-removed] > 5.0:
-            self.t_list.pop(i-removed)
-            self.times.pop(i-removed)
-            removed +=1
 
 class TimeOutList(): #TODO test in working simulation
     def __init__(self):
         self.t_list = list()
         self.times = list()
-    
+
     def timeout(self):
         removed = 0
         if len(self.t_list) == 0:
@@ -78,10 +56,10 @@ class TimeOutList(): #TODO test in working simulation
                 self.t_list.pop(i-removed)
                 self.times.pop(i-removed)
                 removed +=1
-    
+
     def __len__(self):
         return len(self.t_list)
-    
+
     def append(self, value):
         self.t_list.append(value)
         self.times.append(time.time())
@@ -96,7 +74,7 @@ class TimeOutList(): #TODO test in working simulation
     def remove(self, value):
         self.times.pop(self.t_list.index(value))
         self.t_list.remove(value)
-        
+
     def __iter__(self):
         self.timeout()
         for i in self.t_list:
@@ -109,7 +87,7 @@ class TimeOutList(): #TODO test in working simulation
     def insert(self, index, value):
         self.t_list.insert(index, value)
         self.times.insert(index, time.time())
-        
+
 
 
 class MessageManager:
@@ -123,7 +101,7 @@ class MessageManager:
 
         else:
             if (
-                    " " not in message and "ONLINE?" not in message and "BLOCKCHAIN?" not in message and "GET_NODES" not in message and "BLOCKCHAINLEN?" not in message and "GET_STAKE_TRANS" not in message) or "VALID" in message or "BREQ" in message or "SREQ" in message:  # TODO clean this up
+                    " " not in message and "ONLINE?" not in message and "BLOCKCHAIN?" not in message and "GET_NODES" not in message  and "GET_STAKE_TRANS" not in message) or "VALID" in message or "BREQ" in message or "SREQ" in message or "NREQ" in message:  # TODO clean this up
                 self.long_messages.append((address[0], message))
 
             else:
@@ -358,7 +336,15 @@ def request_reader(type_, ip="192.168.68.1"):
                 lines.remove(" ".join(line))
 
             elif line[1] == "NREQ":
-                nreq_lines.append(" ".join(line))
+                try:
+                    ast.literal_eval(line[2])
+                    nreq_lines.append(" ".join(line))
+                except ValueError:
+                    node_lines.append(" ".join(line))
+                except IndexError:
+                    node_lines.append(" ".join(line))
+                except SyntaxError:
+                    pass
 
             elif line[1] in pre_protocol:
                 online_lines.append(" ".join(line))
@@ -950,7 +936,9 @@ def message_handler(message):
         try:
             ast.literal_eval(message[2])
         except ValueError:
-            raise ValueTypeError("Blockchain not given as Node List")
+            raise ValueTypeError("Nodes not given as Node List")
+        except SyntaxError:
+            raise NotCompleteError("NREQ list not complete yet")
 
     elif protocol == "TRANS":
         # host, TRANS, time of transaction, sender public key, receiver public key, amount sent, sig
@@ -1038,7 +1026,7 @@ if __name__ == '__main__':
     print(arr.t_list)
 
     time.sleep(10)
-    
+
     if arr:
         for i in arr:
             print([i])
