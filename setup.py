@@ -1,7 +1,7 @@
 import setuptools
 import node
 setuptools.setup(
-    name="DECINT",
+    name="DECINT_node",
     version=f"{node.__version__}",
     author="Chris Rae",
     author_email="raecd123@gmail.com",
