@@ -72,8 +72,7 @@ def rb(block_hash, block_time, time_validation=None, invalid=False):
         rand_node = [rand_node]
     if not invalid:
         return rand_node , time_validation
-    else:
-        return rand_node[-1], time_validation
+    return rand_node[-1], time_validation
 
 
 def am_i_validator(chain):

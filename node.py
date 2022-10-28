@@ -16,6 +16,7 @@ import copy
 import traceback
 
 
+
 __version__ = "1.0"
 
 
@@ -44,8 +45,8 @@ def receive():
 
 class TimeOutList(): #TODO test in working simulation
     def __init__(self):
-        self.t_list = list()
-        self.times = list()
+        self.t_list = []
+        self.times = []
 
     def timeout(self):
         removed = 0
@@ -224,8 +225,7 @@ def rand_act_node(num_nodes=1, type_=None):
 
     if len(nodes) == 1:
         return nodes[0]
-    else:
-        return nodes
+    return nodes
 
 
 def line_remover(del_lines, file_path):
@@ -282,7 +282,7 @@ def dist_request_reader(type_="TRANS"):
             message.pop(0)
             message.pop(0)
 
-            if message[0] == "" or message[0] == "\n":
+            if message[0] in ("", "\n"):
                 lines.remove(" ".join(message))
 
             elif message[1] in trans_protocols:
@@ -332,7 +332,7 @@ def request_reader(type_, ip="192.168.68.1"):
             except NotCompleteError:
                 continue
 
-            if line[0] == "" or line[0] == "\n":
+            if line[0] in ("", "\n"):
                 lines.remove(" ".join(line))
 
             elif line[1] == "NREQ":
@@ -436,7 +436,7 @@ def announce(pub_key, port, version_, node_type, priv_key):
     if not isinstance(priv_key, bytes):
         priv_key = SigningKey.from_string(bytes.fromhex(priv_key), curve=SECP112r2)
     sig = str(priv_key.sign(announcement_time.encode()).hex())
-    asyncio.run(send_to_all(f"HELLO {announcement_time} {pub_key} {str(port)} {version_} {node_type} {sig}"))
+    asyncio.run(send_to_all(f"HELLO {announcement_time} {pub_key} {port} {version_} {node_type} {sig}"))
 
 
 def update(old_key, port, version_, priv_key, new_key=None):
@@ -446,7 +446,7 @@ def update(old_key, port, version_, priv_key, new_key=None):
     if not isinstance(priv_key, bytes):
         priv_key = SigningKey.from_string(bytes.fromhex(priv_key), curve=SECP112r2)
     sig = str(priv_key.sign(update_time.encode()).hex())
-    asyncio.run(send_to_all(f"UPDATE {update_time} {old_key} {new_key} {str(port)} {version_} {sig}"))
+    asyncio.run(send_to_all(f"UPDATE {update_time} {old_key} {new_key} {port} {version_} {sig}"))
     with open(f"{os.path.dirname(__file__)}/info/Public_key.txt", "w") as file:
         file.write(new_key)
 
@@ -539,8 +539,7 @@ def get_blockchain(chain, nodes=[]):
     check = chain.update(new_chain_1, new_chain_2)
     if not check:
         return get_blockchain(chain, pre_nodes)
-    else:
-        return nodes
+    return nodes
 
 
 def get_stake_trans(nodes=[]):
@@ -597,8 +596,7 @@ def get_stake_trans(nodes=[]):
             json.dump(stake_trans_1, file)
         print("---STAKE TRANS UPDATED---")
         return nodes
-    else:
-        return get_stake_trans(pre_nodes)
+    return get_stake_trans(pre_nodes)
 
 
 def get_nodes(nodes=[]):
@@ -657,8 +655,7 @@ def get_nodes(nodes=[]):
             json.dump(nodes_1, file)
         print("---NODES UPDATED---")
         return nodes
-    else:
-        return get_nodes(pre_nodes)
+    return get_nodes(pre_nodes)
 
 
 def send_node(host):
@@ -772,8 +769,7 @@ def check_float(value):
 def check_int(value):
     if value.isdigit():
         return True
-    else:
-        return False
+    return False
 
 
 #  TODO add AI_JOB protocols
@@ -1020,7 +1016,7 @@ def message_handler(message):
 if __name__ == '__main__':
     arr = TimeOutList()
 
-    for i in [1,2,3,4,5,6]:
+    for i in (1,2,3,4,5,6):
         arr.append(i)
     time.sleep(1)
     print(arr.t_list)

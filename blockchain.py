@@ -16,6 +16,7 @@ import json
 from timeit import default_timer as timer
 import math
 import textwrap
+from contextlib import suppress
 
 
 def priv_key_gen():
@@ -38,9 +39,9 @@ def sign_trans(private_key, trans):
 
 
 def quick_sort_block(block):
-    less = list()
-    equal = list()
-    greater = list()
+    less = []
+    equal = []
+    greater = []
     # print(block)
 
     if len(block) > 1:
@@ -54,8 +55,7 @@ def quick_sort_block(block):
             elif trans["time"] > pivot["time"]:
                 greater.append(trans)
         return quick_sort_block(less) + equal + quick_sort_block(greater)
-    else:
-        return list(block)
+    return list(block)
 
 
 class SmartBlock(object):
@@ -170,8 +170,7 @@ class SmartChainV2:
     def exists(self,index):
         if index in self.position_tracker.keys():
             return True
-        else:
-            return False
+        return False
 
     def save_state(self):
         with open(f"{os.path.dirname(__file__)}/info/blockchain.json", "w") as file:
@@ -307,10 +306,9 @@ class Blockchain:
                     pass
             else:
                 i+=1
-        try:
+        with suppress(IndexError):
             value += wallets[wallet_address]
-        except IndexError:
-            pass
+
 
         for j in range(i):
             block = self.chain[block_index-j]
@@ -572,7 +570,7 @@ class Blockchain:
                     valid_trans.append(trans)
 
         if validating:
-            message = f"VALID {str(block_index)} {str(time_of_validation)} {str(valid_trans).replace(' ','')}"
+            message = f"VALID {block_index} {time_of_validation} {str(valid_trans).replace(' ','')}"
             message_len = len(message)
             if message_len < 5000:
                 asyncio.run(node.send_to_all(message, no_dist=True))
