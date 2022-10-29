@@ -499,7 +499,7 @@ def get_blockchain(chain, nodes=[]):
         if tries == 10:
             get_blockchain(chain, pre_nodes)
             return
-        time.sleep(2)
+        time.sleep(1)
         lines = request_reader("BREQ")
         if lines:
             line = lines[0].split(" ")
@@ -525,7 +525,7 @@ def get_blockchain(chain, nodes=[]):
         if tries == 10:
             get_blockchain(chain, pre_nodes)
             return
-        time.sleep(2)
+        time.sleep(1)
         lines = request_reader("BREQ")
         if lines:
             line = lines[0].split(" ")
@@ -615,7 +615,7 @@ def get_nodes(nodes=[]):
     while True:
         if tries == 10:
             return get_nodes(pre_nodes)
-        time.sleep(2)
+        time.sleep(1)
         lines = request_reader("NREQ")
         if lines:
             line = lines[0].split(" ")
@@ -639,7 +639,7 @@ def get_nodes(nodes=[]):
     while True:
         if tries == 10:
             return get_nodes(pre_nodes)
-        time.sleep(2)
+        time.sleep(1)
         lines = request_reader("NREQ")
         if lines:
             line = lines[0].split(" ")

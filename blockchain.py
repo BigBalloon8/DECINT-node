@@ -366,8 +366,6 @@ class Blockchain:
         return value
 
     def add_transaction(self, trans: dict):
-        if len(self.chain[-1]) == 1:
-            time.sleep(0.01)# give time for new block to load
         relative_time = int(float(trans["time"]) - float(self.chain[-1][1]["time"]))
         prev_relative_time = int(float(trans["time"]) - float(self.chain[-2][0][2]))
         # prev_relative_time = 10000
@@ -578,8 +576,7 @@ class Blockchain:
                 messages = textwrap.wrap(message, 5000)
                 for message_ in messages:
                     asyncio.run(node.send_to_all(message_, no_dist=True))
-                    time.sleep(0.1)
-            time.sleep(5)  # stop sending multiple VALIDs to dist node
+            time.sleep(1)  # stop sending multiple VALIDs to dist node
 
         if not validating:
             return True

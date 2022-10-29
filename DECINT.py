@@ -42,7 +42,7 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
         receive.start()
         node.get_nodes()
         click.echo("In order to update your Node please enter a bit of information")
-        time.sleep(2)
+        time.sleep(1)
         with open(f"{os.path.dirname(__file__)}/info/Public_key.txt", "r") as file:
             pub_key = file.read()
         if not pub_key:
@@ -62,7 +62,7 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
         receive.start()
         node.get_nodes()
         click.echo("In order to delete your Node please enter a bit of information")
-        time.sleep(2)
+        time.sleep(1)
         with open(f"{os.path.dirname(__file__)}/info/Public_key.txt", "r") as file:
             pub_key = file.read()
         priv_key = click.prompt("Private Key", type=str)

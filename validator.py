@@ -62,7 +62,7 @@ def rb(block_hash, block_time, time_validation=None, invalid=False):
     #print(node_weights)
     random.seed(hash_num(block_hash))
     time_since_complete = time_validation - block_time
-    number_of_misses = int(time_since_complete//300)
+    number_of_misses = int(time_since_complete//20)
     if number_of_misses > 100000:
         #print(number_of_misses)
         number_of_misses = 0
@@ -82,7 +82,6 @@ def am_i_validator(chain):
     # This problem with the current iteration is that it checks to see if valid blocks are valid or not. it may be
      possible to store a list of unvalid blocks in a json file
     """
-    # time.sleep(4)
     try:
         print("---VALIDATOR STARTED---")
         with open(f"{os.path.dirname(__file__)}/info/Public_key.txt", "r") as file:
@@ -90,7 +89,6 @@ def am_i_validator(chain):
         validated_blocks = []
         while True:
             try:
-                time.sleep(1)
                 indexes = copy.copy(list(chain.chain.position_tracker.keys()))
                 if len(indexes) != len(chain):  # durig update of position_tracker
                     continue
@@ -118,6 +116,7 @@ def am_i_validator(chain):
     except:
         while True:
             traceback.print_exc()
+
 if __name__ == '__main__':
     print(rb("c547877025c260fa5cad96072a16b51c85a99c01cc15058781a7a301ea5edcab", 1802.0))
     am_i_validator()

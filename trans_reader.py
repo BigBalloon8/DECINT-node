@@ -78,7 +78,6 @@ def AI_reward_handler(line):
 
 
 def read(chain):
-    #time.sleep(20)
     print("---TRANSACTION READER STARTED---")
     while True:
         try:
