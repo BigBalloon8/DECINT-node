@@ -110,7 +110,7 @@ class MessageManager:
                     file.write(f"{address[0]} {message}\n")
 
         for i in self.long_messages:
-            if "]]" in i[1] or "]]]" in i[1] or "}]]" in i[1]:
+            if "]]" in i[1] or "]]]" in i[1] or "}]]" in i[1] or "}]" in i[1]:
                 # if len([j for j in self.long_messages if j[0] == i[0]]) == len(self.long_messages):
                 with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "a+") as file:
                     complete_message = [k for k in self.long_messages.t_list if k[0] == i[0]]
