@@ -1,4 +1,0 @@
-ecdsa
-numba
-click
-requests

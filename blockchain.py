@@ -9,7 +9,6 @@ from ecdsa.util import randrange_from_seed__trytryagain
 import os
 import validator
 import copy
-from numba import jit
 import time
 import random
 import json

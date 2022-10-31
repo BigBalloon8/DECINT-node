@@ -27,7 +27,7 @@ def run():
     """
     chain = blockchain.Blockchain()
 
-    with concurrent.futures.ThreadPoolExecutor() as executor:
+    with concurrent.futures.ProcessPoolExecutor() as executor:
         executor.submit(node.receive)  # start recieving ✅
         executor.submit(node.updator, chain).result() # update Blockchain & Nodes ✅ # .result() is used to wait for the thread to finish
         executor.submit(pre_reader.read, chain)
