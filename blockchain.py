@@ -178,8 +178,8 @@ class SmartChainV2:
 
 class Blockchain:
 
-    def __init__(self, chain=SmartChainV2()):
-        self.chain = chain  # smart chain is just a list
+    def __init__(self):
+        self.chain = SmartChainV2()  # smart chain is just a list
 
     def __repr__(self):
         return str(self.chain)  # .replace("]", "]\n")

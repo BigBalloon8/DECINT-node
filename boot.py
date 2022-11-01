@@ -4,7 +4,7 @@ import node
 import threaded_reader
 import trans_reader
 import validator
-import proccess_reader
+import process_reader
 import concurrent.futures
 import socket
 import multiprocessing
@@ -30,7 +30,7 @@ def run():
     update.start()
     update.join()
 
-    reader = multiprocessing.Process(target=proccess_reader.read)
+    reader = multiprocessing.Process(target=process_reader.read)
     reader.start()
 
     with concurrent.futures.ThreadPoolExecutor() as executor:

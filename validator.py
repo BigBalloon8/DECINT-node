@@ -88,7 +88,6 @@ def am_i_validator(chain):
             my_pub = file.read()
         validated_blocks = []
         while True:
-            time.sleep(5) #TODO for testing remove
             try:
                 indexes = copy.copy(list(chain.chain.position_tracker.keys()))
                 if len(indexes) != len(chain):  # durig update of position_tracker
