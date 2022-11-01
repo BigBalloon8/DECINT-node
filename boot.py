@@ -17,11 +17,11 @@ update Blockchain and nodes
 """
 def run():
     open(f"{os.path.dirname(__file__)}/recent_messages.txt", "w").close()#clear recent message file
+
     local_ip = socket.gethostbyname(socket.gethostname())
-    print(f"MY IP: {local_ip}")
-    #local_ip = input("IP: ").replace(" ", "")
 
     chain = blockchain.Blockchain()
+    queue = multiprocessing.Queue()
 
     rec = multiprocessing.Process(target=node.receive)
     rec.start()
