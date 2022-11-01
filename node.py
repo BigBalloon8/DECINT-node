@@ -310,14 +310,14 @@ def request_reader(type_, ip="192.168.68.1"):
     """
     with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "r") as file:
         lines = file.read().splitlines()
-    breq_protocol = ["BREQ", "BLENREQ"]
-    pre_protocol = ["ONLINE?", "GET_NODES", "BLOCKCHAIN?", "BLOCKCHAINLEN?", "GET_STAKE_TRANS"]
 
-    node_lines = []
+    thread_protocols = ["VALID", "BLOCKCHAIN?"]
+
+    process_lines = []
+    thread_lines = []
     nreq_lines = []
     breq_lines = []
     sreq_lines = []
-    online_lines = []
     del_lines = []
     if str(lines) != "[]":
         for line in lines:
@@ -335,28 +335,28 @@ def request_reader(type_, ip="192.168.68.1"):
             if line[0] in ("", "\n"):
                 lines.remove(" ".join(line))
 
+            elif line[1] in thread_protocols:
+                thread_lines.append(" ".join(line))
+
             elif line[1] == "NREQ":
                 try:
                     ast.literal_eval(line[2])
                     nreq_lines.append(" ".join(line))
                 except ValueError:
-                    node_lines.append(" ".join(line))
+                    process_lines.append(" ".join(line))
                 except IndexError:
-                    node_lines.append(" ".join(line))
+                    process_lines.append(" ".join(line))
                 except SyntaxError:
                     pass
 
-            elif line[1] in pre_protocol:
-                online_lines.append(" ".join(line))
-
-            elif line[1] in breq_protocol:
+            elif line[1] == "BREQ":
                 try:
                     ast.literal_eval(line[2])
                     breq_lines.append(" ".join(line))
                 except ValueError:
-                    node_lines.append(" ".join(line))
+                    process_lines.append(" ".join(line))
                 except IndexError:
-                    node_lines.append(" ".join(line))
+                    process_lines.append(" ".join(line))
                 except SyntaxError:
                     pass
 
@@ -365,28 +365,28 @@ def request_reader(type_, ip="192.168.68.1"):
                     ast.literal_eval(line[2])
                     sreq_lines.append(" ".join(line))
                 except ValueError:
-                    node_lines.append(" ".join(line))
+                    process_lines.append(" ".join(line))
                 except IndexError:
-                    node_lines.append(" ".join(line))
+                    process_lines.append(" ".join(line))
                 except SyntaxError:
                     pass
 
             else:
                 try:
                     ast.literal_eval(line[4])
-                    node_lines.append(" ".join(line))
+                    process_lines.append(" ".join(line))
                 except ValueError:
-                    node_lines.append(" ".join(line))
+                    process_lines.append(" ".join(line))
                 except IndexError:
-                    node_lines.append(" ".join(line))
+                    process_lines.append(" ".join(line))
                 except SyntaxError:
                     pass
 
         if type_ == "NODE":
-            if len(node_lines) == 0:
-                return node_lines
-            line_remover(node_lines + del_lines, f"{os.path.dirname(__file__)}/recent_messages.txt")
-            return node_lines
+            if len(process_lines) == 0:
+                return process_lines
+            line_remover(process_lines + del_lines, f"{os.path.dirname(__file__)}/recent_messages.txt")
+            return process_lines
 
         elif type_ == "NREQ":
             if len(nreq_lines) == 0:
@@ -394,12 +394,12 @@ def request_reader(type_, ip="192.168.68.1"):
             line_remover(nreq_lines + del_lines, f"{os.path.dirname(__file__)}/recent_messages.txt")
             return nreq_lines
 
-        elif type_ == "ONLINE":
-            if len(online_lines) == 0:
-                return online_lines
-            line_remover(online_lines + del_lines, f"{os.path.dirname(__file__)}/recent_messages.txt")
-            return online_lines
-
+        elif type_ == "THREAD":
+            if len(thread_lines) == 0:
+                return thread_lines
+            line_remover(thread_lines + del_lines, f"{os.path.dirname(__file__)}/recent_messages.txt")
+            return thread_lines
+        
         elif type_ == "BREQ":
             if len(breq_lines) == 0:
                 return breq_lines

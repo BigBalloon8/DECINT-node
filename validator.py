@@ -12,7 +12,7 @@ def hash_num(block_hash):
     return num
 
 
-#  @jit(nopython=True)
+
 def rb(block_hash, block_time, time_validation=None, invalid=False):
     """
     the random biased function returns a random node based on the amount a node has stakes
@@ -88,6 +88,7 @@ def am_i_validator(chain):
             my_pub = file.read()
         validated_blocks = []
         while True:
+            time.sleep(5) #TODO for testing remove
             try:
                 indexes = copy.copy(list(chain.chain.position_tracker.keys()))
                 if len(indexes) != len(chain):  # durig update of position_tracker
@@ -97,8 +98,7 @@ def am_i_validator(chain):
                         continue
                     block_index = i
                     if isinstance(chain[i][-3], list):
-                        # print("block has lists")
-                        if (not chain[i][-1][0]):
+                        if not chain[i][-1][0]:
                             if chain[i-1][-1][0]:  # cant be on line above
                                 # print(f"Block {block_index} is not valid")
                                 if (time.time() - float(chain[i][-3][1])) > 10.0:

@@ -159,8 +159,8 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
         with open(f"{os.path.dirname(__file__)}/boot.py", "r") as file:
             boot_py = file.read().splitlines()
         for i in range(len(boot_py)):
-            if ".result()" in boot_py[i]:
-                boot_py[i] = boot_py[i].replace(".result()", " ")
+            if "update.join()" in boot_py[i]:
+                boot_py[i] = "    "
         with open(f"{os.path.dirname(__file__)}/boot.py", "w") as file:
             file.write("\n".join(boot_py))
 

@@ -1,12 +1,14 @@
 import os
 import blockchain
 import node
-import reader
+import threaded_reader
 import trans_reader
 import validator
-import pre_reader
+import proccess_reader
 import concurrent.futures
 import socket
+import multiprocessing
+import threading
 
 
 """
@@ -18,23 +20,23 @@ def run():
     local_ip = socket.gethostbyname(socket.gethostname())
     print(f"MY IP: {local_ip}")
     #local_ip = input("IP: ").replace(" ", "")
-    """
-    try:
-        os.remove("install_decint.py")
-        os.remove("install.exe")
-    except:
-        pass#wont work after first time ill come up with better way later
-    """
+
     chain = blockchain.Blockchain()
 
-    with concurrent.futures.ProcessPoolExecutor() as executor:
-        executor.submit(node.receive)  # start recieving ✅
-        executor.submit(node.updator, chain).result() # update Blockchain & Nodes ✅ # .result() is used to wait for the thread to finish
-        executor.submit(pre_reader.read, chain)
-        executor.submit(reader.read, chain)
+    rec = multiprocessing.Process(target=node.receive)
+    rec.start()
+
+    update = threading.Thread(target=node.updator, args=(chain,))
+    update.start()
+    update.join()
+
+    reader = multiprocessing.Process(target=proccess_reader.read)
+    reader.start()
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        executor.submit(threaded_reader.read, chain)
         executor.submit(trans_reader.read, chain)
         executor.submit(validator.am_i_validator, chain)
-
 
 
 if __name__ == '__main__':
