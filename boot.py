@@ -11,17 +11,20 @@ import multiprocessing
 import threading
 
 
-"""
-update tensorflow
-update Blockchain and nodes
-"""
+class QueueWrapper():
+    def __int__(self, queue, chain):
+        self.queue = queue
+        self.queue.put(chain)
+
+    
+
 def run():
     open(f"{os.path.dirname(__file__)}/recent_messages.txt", "w").close()#clear recent message file
-
     local_ip = socket.gethostbyname(socket.gethostname())
 
     chain = blockchain.Blockchain()
     queue = multiprocessing.Queue()
+
 
     rec = multiprocessing.Process(target=node.receive)
     rec.start()
