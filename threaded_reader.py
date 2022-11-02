@@ -25,7 +25,7 @@ def read(chain):
 
                     elif message[1] == "BLOCKCHAIN?":
                         #print("BLOCKCHAIN?")
-                        send_chain = "BREQ " + str(chain.return_blockchain()).replace(" ", "")
+                        send_chain = "BREQ " + str(chain.chain).replace(" ", "")
                         messages = textwrap.wrap(send_chain, 5000)
                         for message_ in messages:
                             node.send(message[0], message_)

@@ -184,9 +184,6 @@ class Blockchain:
     def __repr__(self):
         return str(self.chain)  # .replace("]", "]\n")
 
-    def print_block(self, block_index):
-        return str(self.chain[block_index]).replace("]", "]\n")
-
     def __len__(self):
         return len(self.chain)
 
@@ -214,18 +211,6 @@ class Blockchain:
         sort = copy.copy(block)
         block_head = sort.pop(0)
         return [block_head] + quick_sort_block(sort)
-
-    def all_transactions(self, address: str):
-        transactions = []
-        for block in self.chain:
-            for trans in block:
-                if trans["sender"] == address:
-                    transactions.append(trans)
-                    print(trans)
-                if trans["receiver"] == address:
-                    transactions.append(trans)
-                    print(trans)
-        return transactions
 
     def get_block_reward(self, block_index):
         total = 0.0
@@ -496,13 +481,9 @@ class Blockchain:
                             trans_no_sig = " ".join(map(str, list(trans_no_sig.values())))
                             public_key = VerifyingKey.from_string(bytes.fromhex(trans["sender"]), curve=SECP112r2)
                             if not public_key.verify(bytes.fromhex(trans["sig"]), trans_no_sig.encode()):
-                                while True:
-                                    print("not correct sig")
                                 return False
                     else:
                         if not validating:
-                            while True:
-                                print("not enough funds")
                             return False
 
                 if "stake_amount" in trans:
@@ -513,13 +494,9 @@ class Blockchain:
                             valid_trans.append(trans)
                             public_key = VerifyingKey.from_string(bytes.fromhex(trans["pub_key"]), curve=SECP112r2)
                             if not public_key.verify(bytes.fromhex(trans["sig"]), str(trans["time"]).encode()):
-                                while True:
-                                    print("sig wrong")
                                 return False
                     else:
                         if not validating:
-                            while True:
-                                print("not enough funds")
                             return False
 
                 if "unstake_amount" in trans:
@@ -530,14 +507,10 @@ class Blockchain:
                             valid_trans.append(trans) # optimise
                             public_key = VerifyingKey.from_string(bytes.fromhex(trans["pub_key"]), curve=SECP112r2)
                             if not public_key.verify(bytes.fromhex(trans["sig"]), str(trans["time"]).encode()):
-                                while True:
-                                    print("sigs wrong")
                                 return False
 
                     else:
                         if not validating:
-                            while True:
-                                print("not enough funds")
                             return False
 
             elif isinstance(trans, list):
@@ -557,10 +530,6 @@ class Blockchain:
                     b_time = block[-3][1]
                     if not validating:
                         if b_hash != trans[0]:
-                            while True:
-                                print(b_hash)
-                                print(trans)
-                                print("wrong block hash")
                             return False
                     valid_trans.append([b_hash, b_time])
                 else:
@@ -665,8 +634,7 @@ class Blockchain:
             while True:
                 traceback.print_exc()
 
-    def return_blockchain(self):
-        return self.chain
+
 
 
 
