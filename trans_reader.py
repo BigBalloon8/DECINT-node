@@ -46,7 +46,7 @@ def AI_job_handler(line,chain):
     if job_announce["time"] > (time.time() - 5.0):  # was announced in the last 5 seconds
         if not job_announce["time"] > time.time():  # not from the future
             chain.add_protocol(job_announce)
-            #blockchain.write_blockchain(chain)
+
 
 def staking_handler(line,chain):
     line = line.split(" ")
