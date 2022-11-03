@@ -85,6 +85,7 @@ class QueueWrapper: #TODO use decorators to neaten up
                 chain = self.queue.get()
                 chain.add_transaction(trans)
                 self.queue.put(chain)
+                break
 
     def add_protocol(self, announcment):
         while True:
@@ -92,6 +93,7 @@ class QueueWrapper: #TODO use decorators to neaten up
                 chain = self.queue.get()
                 chain.add_protocol(announcment)
                 self.queue.put(chain)
+                break
 
     def validate(self, block_index: int, time_of_validation: float, validating: bool = True, block=None):
         while True:
@@ -107,6 +109,7 @@ class QueueWrapper: #TODO use decorators to neaten up
                 chain = self.queue.get()
                 chain.temp_to_final(block_index)
                 self.queue.put(chain)
+                break
 
     def block_valid(self, block_index: int, public_key: str, time_of_validation: float, block):
         while True:
@@ -114,6 +117,7 @@ class QueueWrapper: #TODO use decorators to neaten up
                 chain = self.queue.get()
                 chain.block_valid(block_index, public_key, time_of_validation, block)
                 self.queue.put(chain)
+                break
 
 
 def run():
