@@ -11,7 +11,7 @@ import multiprocessing
 import threading
 
 
-class QueueWrapper: #TODO use decorators to neaten up
+class QueueWrapper:  # TODO use decorators to neaten up
     def __init__(self, queue: multiprocessing.Queue, chain: blockchain.Blockchain):
         self.queue = queue
         self.queue.put(chain)
