@@ -99,19 +99,24 @@ def am_i_validator(chain):
                     if isinstance(chain[i][-3], list):
                         if not chain[i][-1][0]:
                             if chain[i-1][-1][0]:  # cant be on line above
-                                # print(f"Block {block_index} is not valid")
                                 if (time.time() - float(chain[i][-3][1])) > 10.0:
                                     block_time = chain[i][1]["time"]
                                     block_hash = chain[i][0][0]
+                                    if not isinstance(block_hash, str):
+                                        continue
                                     nodes, time_of_valid = rb(block_hash, block_time)
                                     for node in nodes:
                                         if node["pub_key"] == my_pub and block_index not in validated_blocks:
                                             print(f"I AM VALIDATOR, B{block_index}")
                                             chain.validate(block_index, time_of_valid)
                                             validated_blocks.append(block_index)
+            except KeyError:  # caused by blockchain adding new block during chain[i][1]["time"]
+                continue
             except blockchain.SmartChainKeyError:
                 traceback.print_exc()
                 continue
+
+
     except:
         while True:
             traceback.print_exc()
