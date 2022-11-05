@@ -311,10 +311,7 @@ def request_reader(type_, ip="192.168.68.1"):
     with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "r") as file:
         lines = file.read().splitlines()
 
-    thread_protocols = ["VALID", "BLOCKCHAIN?"]
-
     process_lines = []
-    thread_lines = []
     nreq_lines = []
     breq_lines = []
     sreq_lines = []
@@ -334,9 +331,6 @@ def request_reader(type_, ip="192.168.68.1"):
 
             if line[0] in ("", "\n"):
                 lines.remove(" ".join(line))
-
-            elif line[1] in thread_protocols:
-                thread_lines.append(" ".join(line))
 
             elif line[1] == "NREQ":
                 try:
@@ -394,12 +388,6 @@ def request_reader(type_, ip="192.168.68.1"):
             line_remover(nreq_lines + del_lines, f"{os.path.dirname(__file__)}/recent_messages.txt")
             return nreq_lines
 
-        elif type_ == "THREAD":
-            if len(thread_lines) == 0:
-                return thread_lines
-            line_remover(thread_lines + del_lines, f"{os.path.dirname(__file__)}/recent_messages.txt")
-            return thread_lines
-        
         elif type_ == "BREQ":
             if len(breq_lines) == 0:
                 return breq_lines

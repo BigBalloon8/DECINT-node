@@ -1,10 +1,9 @@
 import os
 import blockchain
 import node
-import threaded_reader
 import trans_reader
 import validator
-import process_reader
+import reader
 import concurrent.futures
 import socket
 import multiprocessing
@@ -132,15 +131,12 @@ def run():
 
     update = threading.Thread(target=node.updator, args=(chain,))
     update.start()
-
     update.join()
+
     multiproccess_chain = QueueWrapper(queue, chain)
 
-    p_reader = multiprocessing.Process(target=process_reader.read)
-    p_reader.start()
-
-    th_reader = multiprocessing.Process(target=threaded_reader.read, args=(multiproccess_chain,))
-    th_reader.start()
+    message_reader = multiprocessing.Process(target=reader.read, args=(multiproccess_chain,))
+    message_reader.start()
 
     tr_reader = multiprocessing.Process(target=trans_reader.read, args=(multiproccess_chain,))
     tr_reader.start()

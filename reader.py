@@ -6,8 +6,7 @@ import textwrap
 import os
 import time
 
-
-def read():
+def read(chain):
     print("---PROCESS READER STARTED---")
     #ip = get('https://api.ipify.org').text
     try:
@@ -34,7 +33,7 @@ def read():
                     elif message[1] == "ONLINE?":
                         pass
                     #print(f"yh sent to {message[0]}")
-                        #node.send(message[0], "yh")
+                    #node.send(message[0], "yh")
 
                     elif message[1] == "GET_NODES":
                         #print("GET_NODES")
@@ -47,11 +46,21 @@ def read():
                         messages = textwrap.wrap(temp_message, 5000)
                         for message_ in messages:
                             node.send(message[0], message_)
+
+                    elif message[1] == "VALID":  # update block to true
+                        print("VALID")
+                        blockchain.validate_blockchain(int(message[2]), message[0], float(message[3]), message[4], chain)
+
+                    elif message[1] == "BLOCKCHAIN?":
+                        #print("BLOCKCHAIN?")
+                        send_chain = "BREQ " + str(chain.chain).replace(" ", "")
+                        messages = textwrap.wrap(send_chain, 5000)
+                        for message_ in messages:
+                            node.send(message[0], message_)
     except:
         while True:
             time.sleep(0.5)
             traceback.print_exc()
-
 
 
 if __name__ == "__main__":
