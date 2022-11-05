@@ -14,14 +14,15 @@ import json
 from threading import Thread
 import copy
 import traceback
-
+import trans_reader
+import threading
 
 
 __version__ = "1.0"
 
 
 # recieve from nodes
-def receive():
+def receive(chain=None):
     """
     message is split into array the first value the type of message the second value is the message
     """
@@ -29,7 +30,7 @@ def receive():
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server.bind(("", 1379))
     server.listen()
-    message_handle = MessageManager()
+    message_handle = MessageManager(chain)
     while True:
         try:
             client, address = server.accept()
@@ -92,13 +93,13 @@ class TimeOutList(): #TODO test in working simulation
 
 
 class MessageManager:
-    def __init__(self):
+    def __init__(self,chain):
         self.long_messages = TimeOutList()
+        self.chain = chain
 
     def write(self, address, message):
         if "DIST" in message:
-            with open(f"{os.path.dirname(__file__)}/dist_messages.txt", "a") as file:
-                file.write(f"{address[0]} {message}\n")
+            threading.Thread(dist_request_reader, args=("TRANS", f"{address[0]} {message}", self.chain)).start()
 
         else:
             if (
@@ -238,7 +239,7 @@ def line_remover(del_lines, file_path):
             file.write(line)
 
 
-def dist_request_reader(type_="TRANS"):
+def dist_request_reader(type_, line, chain):
     while True:
         try:
             with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
@@ -247,61 +248,33 @@ def dist_request_reader(type_="TRANS"):
         except json.decoder.JSONDecodeError:  # somtimes clashes with other threads running the same function
             continue
 
-    with open(f"{os.path.dirname(__file__)}/dist_messages.txt", "r") as file:
-        lines = file.read().splitlines()
     dist_nodes = [node_ for node_ in nodes if node_["node_type"] == "dist"]
-
     trans_protocols = ["TRANS", "STAKE", "UNSTAKE", "AI_JOB_ANNOUNCE"]
+    message = line.split(" ")
 
-    trans_lines = []
-    left_over_lines = []
+    try:
+        message_handler(message[2:])  # handle message without inputting dist and dist node address
+    except NodeError as e:
+        print([message], e)
+        send(message[0], f"ERROR {e}")
+        return
+    except NotCompleteError:
+        return
 
-    trans_messages = []
-    # left_over_messages = []
+    dist_node = False
+    for node_ in dist_nodes:
+        if node_["ip"] == message[0]:
+            dist_node = True
+            break
 
-    for line in lines:
-        message = line.split(" ")
+    if dist_node:
+        message.pop(0)
+        message.pop(0)
 
-        try:
-            message_handler(message[2:])  # handle message without inputting dist and dist node address
-        except NodeError as e:
-            print([message], e)
-            send(message[0], f"ERROR {e}")
-            left_over_lines.append(line)
-            continue
-        except NotCompleteError as e:
-            continue
+        if message[1] in trans_protocols:
+            trans_reader.read(chain, message)
 
-        dist_node = False
-        for node_ in dist_nodes:
-            if node_["ip"] == message[0]:
-                dist_node = True
-                break
-
-        if dist_node:
-            message.pop(0)
-            message.pop(0)
-
-            if message[0] in ("", "\n"):
-                lines.remove(" ".join(message))
-
-            elif message[1] in trans_protocols:
-                trans_lines.append(line)
-                trans_messages.append(" ".join(message))
-
-
-            else:
-                left_over_lines.append(line)
-
-
-    if type_ == "TRANS":
-        if len(trans_messages) == 0:
-            return trans_messages
-        line_remover(trans_lines, f"{os.path.dirname(__file__)}/dist_messages.txt")
-        return trans_messages
-
-    elif type_ == "LEFT_OVER":
-        line_remover(left_over_lines, f"{os.path.dirname(__file__)}/dist_messages.txt")
+        return
 
 
 def request_reader(type_, ip="192.168.68.1"):

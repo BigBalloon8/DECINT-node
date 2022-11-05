@@ -12,7 +12,6 @@ def read():
     #ip = get('https://api.ipify.org').text
     try:
         while True:
-            node.dist_request_reader("LEFT_OVER")
             node_lines = node.request_reader("NODE")
             if node_lines:
                 #print(f"NODE LINES: {node_lines}\n")

@@ -13,7 +13,6 @@ def AI_handler():
 
 def trans_handler(line,chain):
     #print(line)
-    line = line.split(" ")
     trans = {"time": float(line[2]), "sender": line[3], "receiver": line[4], "amount": float(line[5]), "sig": line[6]}
     trans_no_sig = copy.copy(trans)
     trans_no_sig.pop("sig")  # left with trans without sig
@@ -32,7 +31,6 @@ def trans_handler(line,chain):
             #blockchain.write_blockchain(chain)
 
 def AI_job_handler(line,chain):
-    line = line.split(" ")
     nodes = ast.literal_eval(line[3])
     nodes_info = []
     for AI_node in nodes:
@@ -48,8 +46,7 @@ def AI_job_handler(line,chain):
             chain.add_protocol(job_announce)
 
 
-def staking_handler(line,chain):
-    line = line.split(" ")
+def staking_handler(line, chain):
     if "STAKE" == line[1]:
         stake_trans = {"time": float(line[2]), "pub_key": line[3], "stake_amount": float(line[4]), "sig": line[5]}
     elif "UNSTAKE" == line[1]:
@@ -77,26 +74,21 @@ def AI_reward_handler(line):
     pass
 
 
-def read(chain):
-    print("---TRANSACTION READER STARTED---")
-    while True:
-        try:
-            trans_lines = node.dist_request_reader()
-            if trans_lines:
-                #print(f"TRANS LINES: {trans_lines}")
-                for trans_line in trans_lines:
-                    if "TRANS" in trans_line:
-                        trans_handler(trans_line,chain)
-                    elif "AI_JOB" in trans_line:
-                        AI_job_handler(trans_line,chain)
-                    elif "STAKE" in trans_line or "UNSTAKE" in trans_line:
-                        staking_handler(trans_line,chain)
-                    elif "AI_REWARD" in trans_line:
-                        AI_job_handler(trans_line,chain)
-        except Exception:
-            while True:
-                traceback.print_exc()
-            pass  # unable to find there error but for some reason the for loop break and I don't know why
+def read(chain, line):
+    try:
+        #trans_lines = node.dist_request_reader()
+        if "TRANS" in line:
+            trans_handler(line,chain)
+        elif "AI_JOB" in line:
+            AI_job_handler(line,chain)
+        elif "STAKE" in line or "UNSTAKE" in line:
+            staking_handler(line,chain)
+        elif "AI_REWARD" in line:
+            AI_job_handler(line,chain)
+    except Exception:
+        while True:
+            traceback.print_exc()
+        pass  # unable to find there error but for some reason the for loop break and I don't know why
 
 
 

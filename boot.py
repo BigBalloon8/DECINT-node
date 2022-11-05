@@ -126,15 +126,15 @@ def run():
 
     chain = blockchain.Blockchain()
     queue = multiprocessing.Queue(maxsize=1)
+    multiproccess_chain = QueueWrapper(queue, chain)
 
-    rec = multiprocessing.Process(target=node.receive)
+    rec = multiprocessing.Process(target=node.receive, args=(multiproccess_chain,))
     rec.start()
 
-    update = threading.Thread(target=node.updator, args=(chain,))
+    update = threading.Thread(target=node.updator, args=(multiproccess_chain,))
     update.start()
 
     update.join()
-    multiproccess_chain = QueueWrapper(queue, chain)
 
     p_reader = multiprocessing.Process(target=process_reader.read)
     p_reader.start()
@@ -142,8 +142,8 @@ def run():
     th_reader = multiprocessing.Process(target=threaded_reader.read, args=(multiproccess_chain,))
     th_reader.start()
 
-    tr_reader = multiprocessing.Process(target=trans_reader.read, args=(multiproccess_chain,))
-    tr_reader.start()
+    #tr_reader = multiprocessing.Process(target=trans_reader.read, args=(multiproccess_chain,))
+    #tr_reader.start()
 
     val = multiprocessing.Process(target=validator.am_i_validator, args=(multiproccess_chain,))
     val.start()
