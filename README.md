@@ -13,7 +13,7 @@ The miners are rewarded via the crypto made through transaction fees thus the pr
 ```bash
 git clone https://github.com/mayfieldmobster/DECINT-node.git
 cd DECINT-node
-pip install . --user
+pip install --editable .
 DECINT --help
 ```
 
