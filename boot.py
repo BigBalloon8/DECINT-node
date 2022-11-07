@@ -125,6 +125,8 @@ def run():
 
     chain = blockchain.Blockchain()
     queue = multiprocessing.Queue(maxsize=1)
+    dist_reader_queue = multiprocessing.Queue()
+    reader_queue = multiprocessing.Queue()
 
     rec = multiprocessing.Process(target=node.receive)
     rec.start()
