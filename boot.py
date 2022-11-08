@@ -8,7 +8,7 @@ import concurrent.futures
 import socket
 import multiprocessing
 import threading
-import proccess_management
+import process_management
 
 
 
@@ -17,7 +17,6 @@ def run():
     local_ip = socket.gethostbyname(socket.gethostname())
 
     chain = blockchain.Blockchain()
-    queue = multiprocessing.Queue(maxsize=1)
 
     rec = multiprocessing.Process(target=node.receive)
     rec.start()
@@ -26,15 +25,25 @@ def run():
     update.start()
     update.join()
 
-    multiproccess_chain = proccess_management.QueueWrapper(queue, chain)
+    r_conn1, r_conn2 = multiprocessing.Pipe(duplex=True)
+    t_conn1, t_conn2 = multiprocessing.Pipe(duplex=True)
+    v_conn1, v_conn2 = multiprocessing.Pipe(duplex=True)
 
-    message_reader = multiprocessing.Process(target=reader.read, args=(multiproccess_chain,))
+    r_pipe = process_management.ReaderPipe(r_conn2)
+    t_pipe = process_management.TransPipe(t_conn2)
+    v_pipe = process_management.ValPipe(v_conn2)
+
+    process_manager = multiprocessing.Process(target=process_management.blockchain_manager,
+                                              args=(chain, (r_conn1, t_conn1, v_conn1),))
+    process_manager.start()
+
+    message_reader = multiprocessing.Process(target=reader.read, args=(r_pipe,))
     message_reader.start()
 
-    tr_reader = multiprocessing.Process(target=trans_reader.read, args=(multiproccess_chain,))
+    tr_reader = multiprocessing.Process(target=trans_reader.read, args=(t_pipe,))
     tr_reader.start()
 
-    val = multiprocessing.Process(target=validator.am_i_validator, args=(multiproccess_chain,))
+    val = multiprocessing.Process(target=validator.am_i_validator, args=(v_pipe,))
     val.start()
 
     #with concurrent.futures.ProcessPoolExecutor() as executor:

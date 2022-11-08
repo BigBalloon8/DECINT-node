@@ -361,7 +361,7 @@ class Blockchain:
 
             elif relative_time > 0:
                 self.chain[-1].append(trans)
-                print("--TRANSACTION ADDED--")
+                print(f"--TRANSACTION ADDED--{trans['sig']}--")
 
         elif relative_time > 120:
             b_time = self.chain[-1][-1]["time"]
@@ -455,7 +455,6 @@ class Blockchain:
                         return False
                     else:
                         continue
-
 
                 if "amount" in trans:
                     if self.wallet_value(trans["sender"], block_index=block_index) > trans["amount"] > 0.0:
@@ -586,26 +585,33 @@ class Blockchain:
                     correct_validation = self.validate(block_index, time_of_validation, validating=False, block=block)
                     if correct_validation:
                         print("CORRECT VALIDATION")
-                        if not self.chain[block_index][-1][0]:
-                            self.chain[block_index] = block
-                            self.chain[block_index][-1] = [True, time_of_validation, public_key]
-                            self.chain[block_index+1][0] = [self.chain[block_index][-3][0], self.chain[block_index][0][1]+1, self.chain[block_index+1][1]["time"]]
-                            for trans in self.chain[block_index]:
-                                if isinstance(trans, dict):
-                                    if "stake_amount" in trans or "unstake_amount" in trans:
-                                        stake_trans.append([block_index, trans])
-                            while True:
-                                try:
-                                    with open(f"{os.path.dirname(__file__)}/info/stake_trans.json", "r") as f:
-                                        stake_transactions = json.load(f)
-                                    stake_transactions = stake_transactions + stake_trans
-                                    with open(f"{os.path.dirname(__file__)}/info/stake_trans.json", "w") as f:
-                                        json.dump(stake_transactions, f)
-                                    break
-                                except json.decoder.JSONDecodeError:
-                                    pass
+                        while True:
+                            try:
+                                if not self.chain[block_index][-1][0]:
+                                    self.chain[block_index] = block
+                                    self.chain[block_index][-1] = [True, time_of_validation, public_key]
+                                    self.chain[block_index+1][0] = [self.chain[block_index][-3][0], self.chain[block_index][0][1]+1, self.chain[block_index+1][1]["time"]]
+                                    for trans in self.chain[block_index]:
+                                        if isinstance(trans, dict):
+                                            if "stake_amount" in trans or "unstake_amount" in trans:
+                                                stake_trans.append([block_index, trans])
+                                    while True:
+                                        try:
+                                            with open(f"{os.path.dirname(__file__)}/info/stake_trans.json", "r") as f:
+                                                stake_transactions = json.load(f)
+                                            stake_transactions = stake_transactions + stake_trans
+                                            with open(f"{os.path.dirname(__file__)}/info/stake_trans.json", "w") as f:
+                                                json.dump(stake_transactions, f)
+                                            break
+                                        except json.decoder.JSONDecodeError:
+                                            pass
 
-                            self._temp_to_final(block_index)
+                                    self._temp_to_final(block_index)
+                                    break
+                            except KeyError:
+                                print("this is for test")
+                                pass
+
 
                     else:
                         print("LIAR WAS FOUND") # UPDATE this to add late validators to liars
@@ -619,6 +625,7 @@ class Blockchain:
             self.block_valid(block_index, public_key, time_of_validation, block)
         except:
             while True:
+                time.sleep(1)
                 traceback.print_exc()
 
 
@@ -679,7 +686,7 @@ def tester():
     start_time = time.time()
     for _ in range(9000):
         #main_pub = os.environ["PUB_KEY"]
-        time.sleep(1)
+        time.sleep(0.2)
         path1 = True #bool(random.randint(0, 1))
         open(f"{os.path.dirname(__file__)}/testing_keys.txt", "w+").close()
         if path1:

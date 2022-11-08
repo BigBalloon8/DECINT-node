@@ -75,7 +75,7 @@ def rb(block_hash, block_time, time_validation=None, invalid=False):
     return rand_node[-1], time_validation
 
 
-def am_i_validator(chain):
+def am_i_validator(chain_pipe):
     """
     Reads the Blockchain checking if blocks is going to be validated by your node
 
@@ -89,29 +89,32 @@ def am_i_validator(chain):
         validated_blocks = []
         while True:
             try:
-                indexes = copy.copy(list(chain.chain.position_tracker.keys()))
-                if len(indexes) != len(chain):  # durig update of position_tracker
+                indexes = copy.copy(list(chain_pipe.chain.position_tracker.keys()))
+                if len(indexes) != len(chain_pipe):  # during update of position_tracker
                     continue
-                for i in indexes:  # cant loop through chain as chain can by updated during looping
-                    if len(chain[i]) <= 3:
+                for i in indexes:
+                    if len(chain_pipe[i]) <= 3:
                         continue
                     block_index = i
-                    if isinstance(chain[i][-3], list):
-                        if not chain[i][-1][0]:
-                            if chain[i-1][-1][0]:  # cant be on line above
-                                if (time.time() - float(chain[i][-3][1])) > 10.0:
-                                    block_time = chain[i][1]["time"]
-                                    block_hash = chain[i][0][0]
+                    if isinstance(chain_pipe[i][-3], list):
+                        if not chain_pipe[i][-1][0]:
+                            if chain_pipe[i - 1][-1][0]:  # cant be on the line above
+                                if (time.time() - float(chain_pipe[i][-3][1])) > 10.0:
+                                    try:
+                                        block_time = chain_pipe[i][1]["time"]
+                                        block_hash = chain_pipe[i][0][0]
+                                    except (IndexError, KeyError):
+                                        continue
                                     if not isinstance(block_hash, str):
                                         continue
                                     nodes, time_of_valid = rb(block_hash, block_time)
                                     for node in nodes:
                                         if node["pub_key"] == my_pub and block_index not in validated_blocks:
                                             print(f"I AM VALIDATOR, B{block_index}")
-                                            chain.validate(block_index, time_of_valid)
+                                            chain_pipe.validate(block_index, time_of_valid)
                                             validated_blocks.append(block_index)
-            except KeyError:  # caused by blockchain adding new block during chain[i][1]["time"]
-                continue
+            #except KeyError:  # caused by blockchain adding new block during chain[i][1]["time"]
+                #continue
             except blockchain.SmartChainKeyError:
                 traceback.print_exc()
                 continue
@@ -119,7 +122,9 @@ def am_i_validator(chain):
 
     except:
         while True:
+            time.sleep(1)
             traceback.print_exc()
+
 
 if __name__ == '__main__':
     print(rb("c547877025c260fa5cad96072a16b51c85a99c01cc15058781a7a301ea5edcab", 1802.0))
