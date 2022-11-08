@@ -201,13 +201,7 @@ class Blockchain:
         for block in self.chain:
             yield block
 
-    def get_block(self, block_index: int):
-        try:
-            return self.chain[block_index]
-        except IndexError:
-            print("block not found")
-
-    def block_sort(self, block):
+    def _block_sort(self, block):
         sort = copy.copy(block)
         block_head = sort.pop(0)
         return [block_head] + quick_sort_block(sort)
@@ -218,16 +212,9 @@ class Blockchain:
             if isinstance(trans, dict):
                 if "amount" in trans:
                     total += trans["amount"]*0.01
-        return round(total,8)
+        return round(total, 8)
 
-    @property
-    def transaction_total(self):
-        total = 0.0
-        for block in self.chain:
-            total += block[-2][0]
-        return total
-
-    def hash_block(self, block):
+    def _hash_block(self, block):
         string_block = str(block).replace(" ", "")
         hashed = hashlib.sha256(string_block.encode())
         hex_hashed = hashed.hexdigest()
@@ -366,8 +353,8 @@ class Blockchain:
                         temp_block.pop()
                         temp_block.pop()
 
-                        self.chain[-2][-3] = [self.hash_block(temp_block), trans["time"]]
-                        self.chain[-1][0] = [self.hash_block(temp_block),self.chain[-2][0][1]+1,self.chain[-1][1]["time"]]
+                        self.chain[-2][-3] = [self._hash_block(temp_block), trans["time"]]
+                        self.chain[-1][0] = [self._hash_block(temp_block), self.chain[-2][0][1] + 1, self.chain[-1][1]["time"]]
                         self.chain[-2][-2] = [self.chain[-2][-2][0] + round(trans["amount"] * 0.01, 8)]  # += not work
                         self.chain[-2][-1] = [False, trans["time"]]  # block cant be true yet
                         print("--ADDED TO PREVIOUS BLOCK--")
@@ -378,7 +365,7 @@ class Blockchain:
 
         elif relative_time > 120:
             b_time = self.chain[-1][-1]["time"]
-            block_hash = self.hash_block(self.chain[-1])
+            block_hash = self._hash_block(self.chain[-1])
             trans_fees = 0.0
             for b_trans in self.chain[-1]:
                 if isinstance(b_trans, dict):
@@ -386,7 +373,7 @@ class Blockchain:
                         trans_fees += round(b_trans["amount"] * 0.01,8)
 
             block = copy.copy(self.chain[-1])
-            self.chain[-1] = self.block_sort(block)
+            self.chain[-1] = self._block_sort(block)
             # self.chain[-1] = block.insert(0, self.chain[-1][0]) #  this was coded a while ago there may be a reason but idk
             self.chain[-1].append([block_hash, b_time])
             self.chain[-1].append([trans_fees])
@@ -414,8 +401,8 @@ class Blockchain:
                         temp_block.pop()
                         temp_block.pop()
 
-                        self.chain[-2][-3] = [self.hash_block(temp_block), announcement["time"]]
-                        self.chain[-1][0] = [self.hash_block(temp_block), self.chain[-2][0][1]+1, self.chain[-1][1]["time"]]
+                        self.chain[-2][-3] = [self._hash_block(temp_block), announcement["time"]]
+                        self.chain[-1][0] = [self._hash_block(temp_block), self.chain[-2][0][1] + 1, self.chain[-1][1]["time"]]
                         self.chain[-2][-1] = [False, announcement["time"]]
                         print("--STAKE ADDED TO PREVIOUS BLOCK--")
 
@@ -425,7 +412,7 @@ class Blockchain:
 
         elif relative_time > 120:  # if new block is needed
             b_time = self.chain[-1][-1]["time"]
-            block_hash = self.hash_block(self.chain[-1])
+            block_hash = self._hash_block(self.chain[-1])
             trans_fees = 0.0
             for b_trans in self.chain[-1]:
                 if isinstance(b_trans, dict):
@@ -433,7 +420,7 @@ class Blockchain:
                         trans_fees += round(b_trans["amount"] * 0.01,8)
 
             block = copy.copy(self.chain[-1])
-            self.chain[-1] = self.block_sort(block)
+            self.chain[-1] = self._block_sort(block)
             # self.chain[-1] = block.insert(0, self.chain[-1][0])
             self.chain[-1].append([block_hash, b_time])
             self.chain[-1].append([trans_fees])
@@ -525,7 +512,7 @@ class Blockchain:
                             return False
                     valid_trans.append([total])
                 elif isinstance(trans[0], str) and len(trans) == 2:  # if block hash
-                    b_hash = self.hash_block(valid_trans)
+                    b_hash = self._hash_block(valid_trans)
                     print("valid_trans: ",valid_trans)
                     b_time = block[-3][1]
                     if not validating:
@@ -549,7 +536,7 @@ class Blockchain:
         if not validating:
             return True
 
-    def temp_to_final(self, block_index):
+    def _temp_to_final(self, block_index):
         """
         Takes transaction based block and converts to a wallet based
         """
@@ -618,7 +605,7 @@ class Blockchain:
                                 except json.decoder.JSONDecodeError:
                                     pass
 
-                            self.temp_to_final(block_index)
+                            self._temp_to_final(block_index)
 
                     else:
                         print("LIAR WAS FOUND") # UPDATE this to add late validators to liars
