@@ -389,7 +389,7 @@ class Blockchain:
 
             elif relative_time > 0:
                 self.chain[-1].append(trans)
-                print("--TRANSACTION ADDED--")
+                print(f"--TRANSACTION ADDED--{trans['sig']}--")
 
         elif relative_time > 120:
             b_time = self.chain[-1][-1]["time"]

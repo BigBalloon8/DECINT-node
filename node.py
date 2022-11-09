@@ -36,9 +36,8 @@ def receive():
             message = client.recv(2 ** 16).decode("utf-8")  # .split(" ")
             if "\n" in message:
                 continue
-            print(f"Message from {address} , {message}\n")
+            #print(f"Message from {address} , {message}\n")
             message_handle.write(address, message)
-            continue
         except Exception as e:
             traceback.print_exc()
 
