@@ -3,6 +3,7 @@ node
 """
 import socket
 import random
+import threading
 import time
 import ast
 import blockchain
@@ -11,7 +12,6 @@ from ecdsa import SigningKey, VerifyingKey, SECP112r2
 import asyncio
 import os
 import json
-from threading import Thread
 import copy
 import traceback
 
@@ -20,29 +20,7 @@ import traceback
 __version__ = "1.0"
 
 
-# recieve from nodes
-def receive():
-    """
-    message is split into array the first value the type of message the second value is the message
-    """
-    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    server.bind(("", 1379))
-    server.listen()
-    message_handle = MessageManager()
-    while True:
-        try:
-            client, address = server.accept()
-            message = client.recv(2 ** 16).decode("utf-8")  # .split(" ")
-            if "\n" in message:
-                continue
-            #print(f"Message from {address} , {message}\n")
-            message_handle.write(address, message)
-        except Exception as e:
-            traceback.print_exc()
-
-
-class TimeOutList(): #TODO test in working simulation
+class TimeOutList:
     def __init__(self):
         self.t_list = []
         self.times = []
@@ -52,10 +30,10 @@ class TimeOutList(): #TODO test in working simulation
         if len(self.t_list) == 0:
             return
         for i in range(len(self.t_list)):
-            if time.time()-self.times[i-removed] > 5.0:
-                self.t_list.pop(i-removed)
-                self.times.pop(i-removed)
-                removed +=1
+            if time.time() - self.times[i - removed] > 5.0:
+                self.t_list.pop(i - removed)
+                self.times.pop(i - removed)
+                removed += 1
 
     def __len__(self):
         return len(self.t_list)
@@ -64,8 +42,8 @@ class TimeOutList(): #TODO test in working simulation
         self.t_list.append(value)
         self.times.append(time.time())
 
-    def __setitem__(self,index, value):
-        return self.t_list.__setitem__(index,value)
+    def __setitem__(self, index, value):
+        return self.t_list.__setitem__(index, value)
 
     def __getitem__(self, index):
         self.timeout()
@@ -89,7 +67,6 @@ class TimeOutList(): #TODO test in working simulation
         self.times.insert(index, time.time())
 
 
-
 class MessageManager:
     def __init__(self):
         self.long_messages = TimeOutList()
@@ -101,9 +78,8 @@ class MessageManager:
 
         else:
             if (
-                    " " not in message and "ONLINE?" not in message and "BLOCKCHAIN?" not in message and "GET_NODES" not in message  and "GET_STAKE_TRANS" not in message) or "VALID" in message or "BREQ" in message or "SREQ" in message or "NREQ" in message:  # TODO clean this up
+                    " " not in message and "ONLINE?" not in message and "BLOCKCHAIN?" not in message and "GET_NODES" not in message and "GET_STAKE_TRANS" not in message) or "VALID" in message or "BREQ" in message or "SREQ" in message or "NREQ" in message:  # TODO clean this up
                 self.long_messages.append((address[0], message))
-
             else:
                 with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "a+") as file:
                     file.write(f"{address[0]} {message}\n")
@@ -115,9 +91,53 @@ class MessageManager:
                     complete_message = [k for k in self.long_messages.t_list if k[0] == i[0]]
                     long_write_lines = ''.join([l[1] for l in complete_message])
                     file.write(f"{i[0]} {long_write_lines}\n")
-                    #print(complete_message, "\n\n", self.long_messages.t_list)
+                    # print(complete_message, "\n\n", self.long_messages.t_list)
                     for m in complete_message:
                         self.long_messages.remove(m)
+
+
+class MessageManagerThread(threading.Thread):
+
+    def __init__(self, message_manager: MessageManager):
+        threading.Thread.__init__(self)
+        self.lines = []
+        self.message_manager = message_manager
+
+    def run(self):
+        while True:
+            if self.lines:
+                for line in self.lines:
+                    self.message_manager.write(line[0], line[1])
+                    self.lines.remove(line)
+
+    def append(self, line):
+        self.lines.append(line)
+
+
+# recieve from nodes
+def receive():
+    """
+    message is split into array the first value the type of message the second value is the message
+    """
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    server.bind(("", 1379))
+    server.listen()
+    message_handle = MessageManager()
+    message_thread = MessageManagerThread(message_handle)
+    message_thread.start()
+    while True:
+        try:
+            client, address = server.accept()
+            message = client.recv(2 ** 16).decode("utf-8")  # .split(" ")
+            if "\n" in message:
+                continue
+            #print(f"Message from {address} , {message}\n")
+            message_thread.append((address, message))
+        except Exception as e:
+            traceback.print_exc()
+
+
 
 
 # send to node
@@ -181,7 +201,7 @@ async def async_send(host, message, port=1379, send_all=False):
 # check if nodes online
 def online(address):
     try:
-        send(address, "ONLINE?") #TODO add a way to timeout
+        send(address, "ONLINE?")  # TODO add a way to timeout
         return True
     except TimeoutError:
         return False
