@@ -25,25 +25,29 @@ def run():
     update.start()
     update.join()
 
-    r_conn1, r_conn2 = multiprocessing.Pipe(duplex=True)
-    t_conn1, t_conn2 = multiprocessing.Pipe(duplex=True)
-    v_conn1, v_conn2 = multiprocessing.Pipe(duplex=True)
+    r_sender = multiprocessing.Queue()
+    r_receiver = multiprocessing.Queue()
+    t_sender = multiprocessing.Queue()
+    t_receiver = multiprocessing.Queue()
+    v_sender = multiprocessing.Queue()
+    v_receiver = multiprocessing.Queue()
+    queues = ((r_sender, r_receiver), (t_sender, t_receiver), (v_sender, v_receiver))
 
-    r_pipe = process_management.ReaderPipe(r_conn2)
-    t_pipe = process_management.TransPipe(t_conn2)
-    v_pipe = process_management.ValPipe(v_conn2)
+    r_queue = process_management.ReaderQueue(r_sender, r_receiver)  # supposed to be in this order
+    t_queue = process_management.TransQueue(t_sender, t_receiver)
+    v_queue = process_management.ValQueue(v_sender, v_receiver)
 
     process_manager = multiprocessing.Process(target=process_management.blockchain_manager,
-                                              args=(chain, (r_conn1, t_conn1, v_conn1),))
+                                              args=(chain, queues,))
     process_manager.start()
 
-    message_reader = multiprocessing.Process(target=reader.read, args=(r_pipe,))
+    message_reader = multiprocessing.Process(target=reader.read, args=(r_queue,))
     message_reader.start()
 
-    tr_reader = multiprocessing.Process(target=trans_reader.read, args=(t_pipe,))
+    tr_reader = multiprocessing.Process(target=trans_reader.read, args=(t_queue,))
     tr_reader.start()
 
-    val = multiprocessing.Process(target=validator.am_i_validator, args=(v_pipe,))
+    val = multiprocessing.Process(target=validator.am_i_validator, args=(v_queue,))
     val.start()
 
     #with concurrent.futures.ProcessPoolExecutor() as executor:

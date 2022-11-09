@@ -7,7 +7,7 @@ import os
 import time
 import process_management
 
-def read(chain_pipe: process_management.ReaderPipe):
+def read(chain_queue: process_management.ReaderQueue):
     print("---PROCESS READER STARTED---")
     #ip = get('https://api.ipify.org').text
     try:
@@ -49,12 +49,12 @@ def read(chain_pipe: process_management.ReaderPipe):
                             node.send(message[0], message_)
 
                     elif message[1] == "VALID":  # update block to true
-                        chain_pipe.valid(int(message[2]), message[0], float(message[3]), message[4])
+                        chain_queue.valid(int(message[2]), message[0], float(message[3]), message[4])
                         #blockchain.validate_blockchain(int(message[2]), message[0], float(message[3]), message[4], chain_pipe)
 
                     elif message[1] == "BLOCKCHAIN?":
                         #print("BLOCKCHAIN?")
-                        send_chain = "BREQ " + str(chain_pipe.chain).replace(" ", "")
+                        send_chain = "BREQ " + str(chain_queue.chain).replace(" ", "")
                         messages = textwrap.wrap(send_chain, 5000)
                         for message_ in messages:
                             node.send(message[0], message_)

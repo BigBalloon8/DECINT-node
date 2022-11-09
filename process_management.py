@@ -5,111 +5,127 @@ import os
 import json
 import ast
 
-
-def reader_pipe_handler(r_pipe, chain:blockchain.Blockchain):
+def reader_queue_handler(r_rec_queue,r_sen_queue , chain:blockchain.Blockchain):
     while True:
-        command, args = r_pipe.recv()
-        if command == "VALID":
-            with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
-                nodes = json.load(file)
-            block = ast.literal_eval(args[3])
-            for node_ in nodes:
-                if node_["ip"] == args[1]:
-                    wallet = node_["pub_key"]
-                    chain.block_valid(args[0], wallet, args[2], block)
+        if not r_rec_queue.empty():
+            command, args = r_rec_queue.get()
+            if command == "VALID":
+                with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
+                    nodes = json.load(file)
+                block = ast.literal_eval(args[3])
+                for node_ in nodes:
+                    if node_["ip"] == args[1]:
+                        wallet = node_["pub_key"]
+                        chain.block_valid(args[0], wallet, args[2], block)
 
-        elif command == "CHAIN":
-            r_pipe.send(chain.chain)
+            elif command == "CHAIN":
+                r_sen_queue.put(chain.chain)
 
 
-class ReaderPipe:
-    def __init__(self, pipe):
-        self.pipe = pipe
+class ReaderQueue:
+    def __init__(self, rec_queue, send_queue):
+        self.rec_queue = rec_queue
+        self.send_queue = send_queue
 
     def valid(self, *args):
-        self.pipe.send(("VALID", args))
+        self.send_queue.put(("VALID", args))
 
     @property
     def chain(self):
-        self.pipe.send(("CHAIN", ()))
-        chain = self.pipe.recv()
-        return chain
+        self.send_queue.put(("CHAIN", ()))
+        while True:
+            if not self.rec_queue.empty():
+                chain = self.rec_queue.get()
+                return chain
 
 
-def trans_pipe_handler(t_pipe, chain:blockchain.Blockchain):
+def trans_queue_handler(t_rec_queue,t_sen_queue, chain:blockchain.Blockchain):
     while True:
-        command, args = t_pipe.recv()
-        if command == "TRANS":
-            chain.add_transaction(*args)
-        elif command == "PROTOCOL":
-            chain.add_protocol(*args)
-        elif command == "GETITEM":
-            t_pipe.send(chain.chain.__getitem__(args))
+        if not t_rec_queue.empty():
+            command, args = t_rec_queue.get()
+            if command == "TRANS":
+                chain.add_transaction(*args)
+            elif command == "PROTOCOL":
+                chain.add_protocol(*args)
+            elif command == "GETITEM":
+                t_sen_queue.put(chain.chain.__getitem__(args))
 
 
-class TransPipe:
-    def __init__(self, pipe):
-        self.pipe = pipe
+class TransQueue:
+    def __init__(self, rec_queue, send_queue):
+        self.rec_queue = rec_queue
+        self.send_queue = send_queue
 
     def __getitem__(self, item):
-        self.pipe.send(("GETITEM", item))
-        return self.pipe.recv()
+        self.send_queue.put(("GETITEM", item))
+        while True:
+            if not self.send_queue.empty():
+                return self.rec_queue.get()
 
     def add_transaction(self, *args):
-        self.pipe.send(("TRANS", args))
+        self.send_queue.put(("TRANS", args))
 
     def add_protocol(self, *args):
-        self.pipe.send(("PROTOCOL", args))
+        self.send_queue.put(("PROTOCOL", args))
 
 
-def val_pipe_handler(v_pipe, chain: blockchain.Blockchain):
+def val_queue_handler(v_rec_queue,v_sen_queue, chain: blockchain.Blockchain):
     while True:
-        command, args = v_pipe.recv()
-        if command == "VALID":
-            chain.validate(*args)
-        elif command == "GETITEM":
-            v_pipe.send(chain.chain.__getitem__(args))
-        elif command == "CHAIN":
-            v_pipe.send(chain.chain)
-        elif command == "LEN":
-            v_pipe.send(chain.__len__())
+        if not v_rec_queue.empty():
+            command, args = v_rec_queue.get()
+            if command == "VALID":
+                chain.validate(*args)
+            elif command == "GETITEM":
+                v_sen_queue.put(chain.chain.__getitem__(args))
+            elif command == "CHAIN":
+                v_sen_queue.put(chain.chain)
+            elif command == "LEN":
+                v_sen_queue.put(chain.__len__())
 
 
-class ValPipe:
-    def __init__(self, pipe):
-        self.pipe = pipe
+class ValQueue:
+    def __init__(self, rec_queue, send_queue):
+        self.rec_queue = rec_queue
+        self.send_queue = send_queue
 
     def __getitem__(self, item):
-        self.pipe.send(("GETITEM", item))
-        return self.pipe.recv()
+        self.send_queue.put(("GETITEM", item))
+        while True:
+            if not self.rec_queue.empty():
+                return self.rec_queue.get()
 
     def __len__(self):
-        self.pipe.send(("LEN", ()))
-        return self.pipe.recv()
+        self.send_queue.put(("LEN", ()))
+        while True:
+            if not self.rec_queue.empty():
+                return self.rec_queue.get()
 
     @property
     def chain(self):
-        self.pipe.send(("CHAIN", ()))
-        return self.pipe.recv()
+        self.send_queue.put(("CHAIN", ()))
+        while True:
+            if not self.rec_queue.empty():
+                return self.rec_queue.get()
 
     def validate(self, *args):
-        self.pipe.send(("VALID", args))
+        self.send_queue.put(("VALID", args))
 
 
-def blockchain_manager(chain, process_pipes:tuple):
+def blockchain_manager(chain, process_queues:tuple):
     """
     everytime a function is run on the current Blockchain it is done
     via this function
     1. function listens for certain commands from other processes and args for command
     2. function executes command on blockchain
     """
-    reader_pipe, trans_pipe, validator_pipe = process_pipes
+    (r_sender,r_receiver),(t_sender,t_receiver),(v_sender,v_receiver) = process_queues
+    #reader_pipe, trans_pipe, validator_pipe = process_queues
 
-    rh = threading.Thread(target=reader_pipe_handler, args=(reader_pipe, chain,))
+    rh = threading.Thread(target=reader_queue_handler, args=(r_receiver, r_sender, chain,))
     rh.start()
 
-    th = threading.Thread(target=trans_pipe_handler, args=(trans_pipe, chain,))
+    th = threading.Thread(target=trans_queue_handler, args=(t_receiver,t_sender, chain,))
     th.start()
 
-    vh = threading.Thread(target=val_pipe_handler, args=(validator_pipe, chain,))
+    vh = threading.Thread(target=val_queue_handler, args=(v_receiver, v_sender, chain,))
     vh.start()
