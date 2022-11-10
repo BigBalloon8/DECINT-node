@@ -15,8 +15,6 @@ import json
 import copy
 import traceback
 
-
-
 __version__ = "1.0"
 
 
@@ -68,32 +66,89 @@ class TimeOutList:
 
 
 class MessageManager:
-    def __init__(self):
+    def __init__(self, req_queue, trans_queue, process_queue, thread_queue):
         self.long_messages = TimeOutList()
+        self.req_queue = req_queue
+        self.trans_queue = trans_queue
+        self.process_queue = process_queue
+        self.thread_queue = thread_queue
 
     def write(self, address, message):
+
         if "DIST" in message:
-            with open(f"{os.path.dirname(__file__)}/dist_messages.txt", "a") as file:
-                file.write(f"{address[0]} {message}\n")
+            message = f"{address[0]} {message}".split(" ")
+            while True:
+                try:
+                    with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
+                        nodes = json.load(file)
+                    break
+                except json.decoder.JSONDecodeError:  # somtimes clashes with other threads running the same function
+                    continue
+
+            dist_nodes = [node_ for node_ in nodes if node_["node_type"] == "dist"]
+
+            try:
+                message_handler(message[2:])
+            except NodeError as e:
+                print([message], e)
+                send(message[0], f"ERROR {e}")
+            except NotCompleteError:
+                return
+
+            dist_node = False
+            for node_ in dist_nodes:
+                if node_["ip"] == message[0]:
+                    dist_node = True
+                    break
+
+            if dist_node:
+                message.pop(0)
+                message.pop(0)
+                self.trans_queue.put(" ".join(message))
 
         else:
             if (
                     " " not in message and "ONLINE?" not in message and "BLOCKCHAIN?" not in message and "GET_NODES" not in message and "GET_STAKE_TRANS" not in message) or "VALID" in message or "BREQ" in message or "SREQ" in message or "NREQ" in message:  # TODO clean this up
                 self.long_messages.append((address[0], message))
             else:
-                with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "a+") as file:
-                    file.write(f"{address[0]} {message}\n")
+                message = f"{address[0]} {message}".split(" ")
+
+                try:
+                    message_handler(message)
+                except NodeError as e:
+                    print([message], e)
+                    send(message[0], f"ERROR {e}")
+                except NotCompleteError:
+                    return
+
+                if "BLOCKCHAIN?" in message:
+                    self.thread_queue.put(" ".join(message))
+                else:
+                    self.process_queue.put(" ".join(message))
 
         for i in self.long_messages:
             if "]]" in i[1] or "]]]" in i[1] or "}]]" in i[1] or "}]" in i[1]:
                 # if len([j for j in self.long_messages if j[0] == i[0]]) == len(self.long_messages):
-                with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "a+") as file:
-                    complete_message = [k for k in self.long_messages.t_list if k[0] == i[0]]
-                    long_write_lines = ''.join([l[1] for l in complete_message])
-                    file.write(f"{i[0]} {long_write_lines}\n")
-                    # print(complete_message, "\n\n", self.long_messages.t_list)
-                    for m in complete_message:
-                        self.long_messages.remove(m)
+                complete_message = [k for k in self.long_messages.t_list if k[0] == i[0]]
+                long_write_lines = ''.join([l[1] for l in complete_message])
+                message = f"{i[0]} {long_write_lines}".split(" ")
+
+                try:
+                    message_handler(message)
+                except NodeError as e:
+                    print([message], e)
+                    send(message[0], f"ERROR {e}")
+                except NotCompleteError:
+                    return
+
+                if "VALID" in message:
+                    self.thread_queue.put(" ".join(message))
+
+                elif "BREQ" in message or "SREQ" in message or "NREQ" in message:
+                    self.req_queue.put(" ".join(message))
+
+                for m in complete_message:
+                    self.long_messages.remove(m)
 
 
 class MessageManagerThread(threading.Thread):
@@ -115,7 +170,7 @@ class MessageManagerThread(threading.Thread):
 
 
 # recieve from nodes
-def receive():
+def receive(req_queue, trans_queue, process_queue, thread_queue):
     """
     message is split into array the first value the type of message the second value is the message
     """
@@ -123,7 +178,7 @@ def receive():
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server.bind(("", 1379))
     server.listen()
-    message_handle = MessageManager()
+    message_handle = MessageManager(req_queue, trans_queue, process_queue, thread_queue)
     message_thread = MessageManagerThread(message_handle)
     message_thread.start()
     while True:
@@ -132,12 +187,10 @@ def receive():
             message = client.recv(2 ** 16).decode("utf-8")  # .split(" ")
             if "\n" in message:
                 continue
-            #print(f"Message from {address} , {message}\n")
+            print(f"Message from {address} , {message}\n")
             message_thread.append((address, message))
         except Exception as e:
             traceback.print_exc()
-
-
 
 
 # send to node
@@ -312,7 +365,6 @@ def dist_request_reader(type_="TRANS"):
             else:
                 left_over_lines.append(line)
 
-
     if type_ == "TRANS":
         if len(trans_messages) == 0:
             return trans_messages
@@ -418,7 +470,7 @@ def request_reader(type_, ip="192.168.68.1"):
                 return thread_lines
             line_remover(thread_lines + del_lines, f"{os.path.dirname(__file__)}/recent_messages.txt")
             return thread_lines
-        
+
         elif type_ == "BREQ":
             if len(breq_lines) == 0:
                 return breq_lines
@@ -494,14 +546,14 @@ def unstake(priv_key, amount):
     send_to_dist(f"UNSTAKE {stake_time} {pub_key} {amount} {sig}")
 
 
-def updator(chain):  # send ask the website for Blockchain as most up to date
+def updator(chain, queue):  # send ask the website for Blockchain as most up to date
     nodes = []
-    nodes = get_nodes(nodes)
-    nodes = get_blockchain(chain, nodes)
-    get_stake_trans(nodes)
+    nodes = get_nodes(nodes, queue)
+    nodes = get_blockchain(chain, nodes, queue)
+    get_stake_trans(nodes, queue)
 
 
-def get_blockchain(chain, nodes=[]):
+def get_blockchain(chain, nodes, queue):
     print("---GETTING BLOCKCHAIN---")
     pre_nodes = copy.copy(nodes)
     while True:
@@ -516,12 +568,12 @@ def get_blockchain(chain, nodes=[]):
     tries = 0
     while True:
         if tries == 10:
-            get_blockchain(chain, pre_nodes)
+            get_blockchain(chain, pre_nodes, queue)
             return
         time.sleep(1)
-        lines = request_reader("BREQ")
-        if lines:
-            line = lines[0].split(" ")
+        line = queue.get()
+        if line:
+            line = line.split(" ")
             if line[0] == node["ip"]:
                 new_chain_1 = ast.literal_eval(line[2])
                 print(f"---BLOCKCHAIN NODE 1 RECEIVED---")
@@ -542,12 +594,12 @@ def get_blockchain(chain, nodes=[]):
     tries = 0
     while True:
         if tries == 10:
-            get_blockchain(chain, pre_nodes)
+            get_blockchain(chain, pre_nodes, queue)
             return
         time.sleep(1)
-        lines = request_reader("BREQ")
-        if lines:
-            line = lines[0].split(" ")
+        line = queue.get()
+        if line:
+            line = line.split(" ")
             if line[0] == node["ip"]:
                 new_chain_2 = ast.literal_eval(line[2])
                 print(f"---BLOCKCHAIN NODE 2 RECEIVED---")
@@ -557,11 +609,11 @@ def get_blockchain(chain, nodes=[]):
     nodes.append(node)
     check = chain.update(new_chain_1, new_chain_2)
     if not check:
-        return get_blockchain(chain, pre_nodes)
+        return get_blockchain(chain, pre_nodes, queue)
     return nodes
 
 
-def get_stake_trans(nodes=[]):
+def get_stake_trans(nodes, queue):
     print("---GETTING STAKE TRANS---")
     pre_nodes = copy.copy(nodes)
     while True:
@@ -575,11 +627,11 @@ def get_stake_trans(nodes=[]):
     tries = 0
     while True:
         if tries == 10:
-            return get_stake_trans(pre_nodes)
+            return get_stake_trans(pre_nodes, queue)
         time.sleep(1)
-        lines = request_reader("SREQ")
-        if lines:
-            line = lines[0].split(" ")
+        line = queue.get()
+        if line:
+            line = line.split(" ")
             if line[0] == node["ip"]:
                 stake_trans_1 = ast.literal_eval(line[2])
                 print("---STAKE TRANS 1 RECEIVED---")
@@ -598,11 +650,11 @@ def get_stake_trans(nodes=[]):
     tries = 0
     while True:
         if tries == 10:
-            return get_stake_trans(pre_nodes)
+            return get_stake_trans(pre_nodes, queue)
         time.sleep(1)
-        lines = request_reader("SREQ")
-        if lines:
-            line = lines[0].split(" ")
+        line = queue.get()
+        if line:
+            line = line.split(" ")
             if line[0] == node["ip"]:
                 stake_trans_2 = ast.literal_eval(line[2])
                 print("---STAKE TRANS 2 RECEIVED---")
@@ -615,10 +667,10 @@ def get_stake_trans(nodes=[]):
             json.dump(stake_trans_1, file)
         print("---STAKE TRANS UPDATED---")
         return nodes
-    return get_stake_trans(pre_nodes)
+    return get_stake_trans(pre_nodes, queue)
 
 
-def get_nodes(nodes=[]):
+def get_nodes(nodes, queue):
     print("---GETTING NODES---")
     pre_nodes = copy.copy(nodes)
     while True:
@@ -633,11 +685,11 @@ def get_nodes(nodes=[]):
     tries = 0
     while True:
         if tries == 10:
-            return get_nodes(pre_nodes)
+            return get_nodes(pre_nodes, queue)
         time.sleep(1)
-        lines = request_reader("NREQ")
-        if lines:
-            line = lines[0].split(" ")
+        line = queue.get()
+        if line:
+            line = line.split(" ")
             if line[0] == node["ip"]:
                 nodes_1 = ast.literal_eval(line[2])
                 print("---NODES 1 RECEIVED---")
@@ -657,11 +709,11 @@ def get_nodes(nodes=[]):
     tries = 0
     while True:
         if tries == 10:
-            return get_nodes(pre_nodes)
+            return get_nodes(pre_nodes, queue)
         time.sleep(1)
-        lines = request_reader("NREQ")
-        if lines:
-            line = lines[0].split(" ")
+        line = queue.get()
+        if line:
+            line = line.split(" ")
             if line[0] == node["ip"]:
                 nodes_2 = ast.literal_eval(line[2])
                 print("---NODES 2 RECEIVED---")
@@ -674,7 +726,7 @@ def get_nodes(nodes=[]):
             json.dump(nodes_1, file)
         print("---NODES UPDATED---")
         return nodes
-    return get_nodes(pre_nodes)
+    return get_nodes(pre_nodes, queue)
 
 
 def send_node(host):
@@ -1035,7 +1087,7 @@ def message_handler(message):
 if __name__ == '__main__':
     arr = TimeOutList()
 
-    for i in (1,2,3,4,5,6):
+    for i in (1, 2, 3, 4, 5, 6):
         arr.append(i)
     time.sleep(1)
     print(arr.t_list)

@@ -8,7 +8,7 @@ from ecdsa import SigningKey, VerifyingKey, SECP112r2
 import boot
 import os
 import threading
-from multiprocessing import Process
+from multiprocessing import Process, Queue
 
 
 @click.command()
@@ -25,9 +25,10 @@ from multiprocessing import Process
 def run(install, update, delete, stake, unstake, trans, run_node, test_install, d2_install, test_trans):
 
     if install:
-        receive = Process(target=node.receive)
+        req_queue = Queue()
+        receive = Process(target=node.receive, args=(req_queue, None, None, None,))
         receive.start()
-        node.get_nodes()
+        node.get_nodes([], req_queue)
         with open(f"{os.path.dirname(__file__)}./info/Public_key.txt", "r") as file:
             key = file.read()
             print(f"key:{key}.")
@@ -38,9 +39,10 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
         receive.terminate()
 
     elif update:
-        receive = Process(target=node.receive)
+        req_queue = Queue()
+        receive = Process(target=node.receive, args=(req_queue, None, None, None,))
         receive.start()
-        node.get_nodes()
+        node.get_nodes([], req_queue)
         click.echo("In order to update your Node please enter a bit of information")
         time.sleep(1)
         with open(f"{os.path.dirname(__file__)}/info/Public_key.txt", "r") as file:
@@ -58,9 +60,10 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
         receive.terminate()
 
     elif delete:
-        receive = Process(target=node.receive)
+        req_queue = Queue()
+        receive = Process(target=node.receive, args=(req_queue, None, None, None,))
         receive.start()
-        node.get_nodes()
+        node.get_nodes([], req_queue)
         click.echo("In order to delete your Node please enter a bit of information")
         time.sleep(1)
         with open(f"{os.path.dirname(__file__)}/info/Public_key.txt", "r") as file:
@@ -70,9 +73,10 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
         receive.terminate()
 
     elif stake:
-        receive = Process(target=node.receive)
+        req_queue = Queue()
+        receive = Process(target=node.receive, args=(req_queue, None, None, None,))
         receive.start()
-        node.get_nodes()
+        node.get_nodes([], req_queue)
         priv_key = click.prompt("Private Key", type=str)
         click.echo(f"{[priv_key]}")
         with open(f"{os.path.dirname(__file__)}/info/Public_key.txt", "r") as file:
@@ -94,9 +98,10 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
         receive.terminate()
 
     elif unstake:
-        receive = Process(target=node.receive)
+        req_queue = Queue()
+        receive = Process(target=node.receive, args=(req_queue, None, None, None,))
         receive.start()
-        node.get_nodes()
+        node.get_nodes([], req_queue)
         priv_key = input("Private Key: ")
         click.echo(f"{[type(priv_key)]}")
         with open(f"{os.path.dirname(__file__)}/info/Public_key.txt", "r") as file:
@@ -123,9 +128,10 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
         receive.terminate()
 
     elif trans:
-        receive = Process(target=node.receive)
+        req_queue = Queue()
+        receive = Process(target=node.receive, args=(req_queue, None, None, None,))
         receive.start()
-        node.get_nodes()
+        node.get_nodes([], req_queue)
         priv_key = click.prompt("Private Key", type=str)
         with open(f"{os.path.dirname(__file__)}/info/Public_key.txt", "r") as file:
             pub_key = file.read()
@@ -145,9 +151,10 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
         receive.terminate()
 
     elif test_install:
-        receive = Process(target=node.receive)
+        req_queue = Queue()
+        receive = Process(target=node.receive, args=(req_queue, None, None, None,))
         receive.start()
-        node.get_nodes()
+        node.get_nodes([], req_queue)
         install_decint.test_install()
         receive.terminate()
         time.sleep(0.01)
@@ -166,9 +173,10 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
 
 
     elif test_trans:
-        receive = Process(target=node.receive)
+        req_queue = Queue()
+        receive = Process(target=node.receive, args=(req_queue, None, None, None,))
         receive.start()
-        node.get_nodes()
+        node.get_nodes([], req_queue)
         receive.terminate()
         blockchain.tester()
 

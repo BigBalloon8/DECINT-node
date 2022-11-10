@@ -77,14 +77,14 @@ def AI_reward_handler(line):
     pass
 
 
-def read(chain):
+def read(chain, queue):
     print("---TRANSACTION READER STARTED---")
     while True:
         try:
-            trans_lines = node.dist_request_reader()
-            if trans_lines:
-                #print(f"TRANS LINES: {trans_lines}")
-                for trans_line in trans_lines:
+            if not queue.empty():
+                trans_line = queue.get()
+                if trans_line:
+                    #print(f"TRANS LINES: {trans_lines}")
                     if "TRANS" in trans_line:
                         trans_handler(trans_line,chain)
                     elif "AI_JOB" in trans_line:
