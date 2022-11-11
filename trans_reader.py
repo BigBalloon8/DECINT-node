@@ -8,6 +8,7 @@ import requests
 import os
 import traceback
 import json
+import threaded_reader
 def AI_handler():
     pass
 
@@ -77,12 +78,14 @@ def AI_reward_handler(line):
     pass
 
 
-def read(chain, queue):
+def read(chain, trans_queue, thread_queue):
     print("---TRANSACTION READER STARTED---")
+    print("---THREADED READER STARTED---")
     while True:
         try:
-            if not queue.empty():
-                trans_line = queue.get()
+            threaded_reader.read(chain, thread_queue)
+            if not trans_queue.empty():
+                trans_line = trans_queue.get()
                 if trans_line:
                     #print(f"TRANS LINES: {trans_lines}")
                     if "TRANS" in trans_line:

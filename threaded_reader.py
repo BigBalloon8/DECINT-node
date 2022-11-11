@@ -9,25 +9,23 @@ import os
 
 
 def read(chain, queue):
-    print("---THREADED READER STARTED---")
     #ip = get('https://api.ipify.org').text
     try:
-        while True:
-            if not queue.empty():
-                line = queue.get()
-                #print(f"NODE LINES: {node_lines}\n")
-                message = line.split(" ")
+        if not queue.empty():
+            line = queue.get()
+            #print(f"NODE LINES: {node_lines}\n")
+            message = line.split(" ")
 
-                if message[1] == "VALID":  # update block to true
-                    print("VALID")
-                    blockchain.validate_blockchain(int(message[2]), message[0], float(message[3]), message[4], chain)
+            if message[1] == "VALID":  # update block to true
+                print("VALID")
+                blockchain.validate_blockchain(int(message[2]), message[0], float(message[3]), message[4], chain)
 
-                elif message[1] == "BLOCKCHAIN?":
-                    #print("BLOCKCHAIN?")
-                    send_chain = "BREQ " + str(chain.return_blockchain()).replace(" ", "")
-                    messages = textwrap.wrap(send_chain, 5000)
-                    for message_ in messages:
-                        node.send(message[0], message_)
+            elif message[1] == "BLOCKCHAIN?":
+                #print("BLOCKCHAIN?")
+                send_chain = "BREQ " + str(chain.return_blockchain()).replace(" ", "")
+                messages = textwrap.wrap(send_chain, 5000)
+                for message_ in messages:
+                    node.send(message[0], message_)
 
     except:
         import time

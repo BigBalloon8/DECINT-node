@@ -34,8 +34,8 @@ def run():
     reader.start()
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        executor.submit(threaded_reader.read, chain, thread_queue)
-        executor.submit(trans_reader.read, chain, trans_queue)
+        #executor.submit(threaded_reader.read, chain, thread_queue)
+        executor.submit(trans_reader.read, chain, trans_queue, thread_queue)
         executor.submit(validator.am_i_validator, chain)
 
 
