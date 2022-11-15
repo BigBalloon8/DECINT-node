@@ -22,7 +22,8 @@ from multiprocessing import Process, Queue
 @click.option("--test_install", "-ti", is_flag=True)
 @click.option("--d2_install", "-d2", is_flag=True)
 @click.option("--test_trans", "-tt", is_flag=True)
-def run(install, update, delete, stake, unstake, trans, run_node, test_install, d2_install, test_trans):
+@click.option("--testing_rate", "-tr", default=1)
+def run(install, update, delete, stake, unstake, trans, run_node, test_install, d2_install, test_trans, testing_rate):
 
     if install:
         req_queue = Queue()
@@ -178,7 +179,7 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
         receive.start()
         node.get_nodes([], req_queue)
         receive.terminate()
-        blockchain.tester()
+        blockchain.tester(testing_rate)
 
     elif run_node:
         boot.run()

@@ -719,12 +719,12 @@ def key_tester():
         print("LLLLL")
 
 
-def tester():
+def tester(rate = 1):
     main_prv = input("PRIV: ")
     start_time = time.time()
     for _ in range(9000):
         #main_pub = os.environ["PUB_KEY"]
-        time.sleep(1)
+        time.sleep(1/rate)
         path1 = True #bool(random.randint(0, 1))
         open(f"{os.path.dirname(__file__)}/testing_keys.txt", "w+").close()
         if path1:
