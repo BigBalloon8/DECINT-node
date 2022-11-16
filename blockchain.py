@@ -567,14 +567,15 @@ class Blockchain:
                     valid_trans.append(trans)
 
         if validating:
-            message = f"VALID {block_index} {time_of_validation} {str(valid_trans).replace(' ','')}"
+            message = f"VALID {block_index} {time_of_validation} {json.dumps(valid_trans).replace(' ','')}"
             message_len = len(message)
             if message_len < 5000:
-                asyncio.run(node.send_to_all(message, no_dist=True))
+                asyncio.run(node.send_to_all("#" + message + "END", no_dist=True))
             else:
                 messages = textwrap.wrap(message, 5000)
-                for message_ in messages:
-                    asyncio.run(node.send_to_all(message_, no_dist=True))
+                for message_ in messages[:-1]:
+                    asyncio.run(node.send_to_all("#" + message_, no_dist=True))
+                asyncio.run(node.send_to_all("#" + messages[-1] + "END", no_dist=True))
             time.sleep(1)  # stop sending multiple VALIDs to dist node
 
         if not validating:
@@ -678,7 +679,7 @@ def read_nodes():
 def validate_blockchain(block_index, ip, time_, block, chain):
     with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
         nodes = json.load(file)
-    block = ast.literal_eval(block)
+    block = json.loads(block)
     for node_ in nodes:
         if node_["ip"] == ip:
             wallet = node_["pub_key"]

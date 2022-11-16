@@ -14,6 +14,7 @@ import os
 import json
 import copy
 import traceback
+import textwrap
 
 __version__ = "1.0"
 
@@ -107,8 +108,7 @@ class MessageManager:
                 self.trans_queue.put(" ".join(message))
 
         else:
-            if (
-                    " " not in message and "ONLINE?" not in message and "BLOCKCHAIN?" not in message and "GET_NODES" not in message and "GET_STAKE_TRANS" not in message) or "VALID" in message or "BREQ" in message or "SREQ" in message or "NREQ" in message:  # TODO clean this up
+            if (" " not in message and "ONLINE?" not in message and "BLOCKCHAIN?" not in message and "GET_NODES" not in message and "GET_STAKE_TRANS" not in message) or "VALID" in message or "BREQ" in message or "SREQ" in message or "NREQ" in message:  # TODO clean this up
                 self.long_messages.append((address[0], message))
             else:
                 message = f"{address[0]} {message}".split(" ")
@@ -127,11 +127,14 @@ class MessageManager:
                     self.process_queue.put(" ".join(message))
 
         for i in self.long_messages:
-            if "]]" in i[1] or "]]]" in i[1] or "}]]" in i[1] or "}]" in i[1]:
-                # if len([j for j in self.long_messages if j[0] == i[0]]) == len(self.long_messages):
-                complete_message = [k for k in self.long_messages.t_list if k[0] == i[0]]
-                long_write_lines = ''.join([l[1] for l in complete_message])
-                message = f"{i[0]} {long_write_lines}".split(" ")
+            if "END" in i[1]:
+                if "#" in i[1]:  # valid messages are sent with # to prevent clashing with _REQ messages
+                    complete_message = [k for k in self.long_messages.t_list if "#" in k[1] and i[0] == k[0]]
+                    long_write_lines = ''.join([j[1].replace("#", "") for j in complete_message])
+                else:
+                    complete_message = [k for k in self.long_messages.t_list if "#" not in k[1] and i[0] == k[0]]
+                    long_write_lines = ''.join([j[1] for j in complete_message])
+                message = f"{i[0]} {long_write_lines[:-3]}".split(" ")  # [:-4] is to remove END
 
                 try:
                     message_handler(message)
@@ -411,47 +414,39 @@ def request_reader(type_, ip="192.168.68.1"):
 
             elif line[1] == "NREQ":
                 try:
-                    ast.literal_eval(line[2])
+                    json.loads(line[2])
                     nreq_lines.append(" ".join(line))
-                except ValueError:
-                    process_lines.append(" ".join(line))
-                except IndexError:
-                    process_lines.append(" ".join(line))
-                except SyntaxError:
+                except json.decoder.JSONDecodeError:
                     pass
+                else:
+                    process_lines.append(" ".join(line))
 
             elif line[1] == "BREQ":
                 try:
-                    ast.literal_eval(line[2])
+                    json.loads(line[2])
                     breq_lines.append(" ".join(line))
-                except ValueError:
-                    process_lines.append(" ".join(line))
-                except IndexError:
-                    process_lines.append(" ".join(line))
-                except SyntaxError:
+                except json.decoder.JSONDecodeError:
                     pass
+                else:
+                    process_lines.append(" ".join(line))
 
             elif line[1] == "SREQ":
                 try:
-                    ast.literal_eval(line[2])
+                    json.loads(line[2])
                     sreq_lines.append(" ".join(line))
-                except ValueError:
-                    process_lines.append(" ".join(line))
-                except IndexError:
-                    process_lines.append(" ".join(line))
-                except SyntaxError:
+                except json.decoder.JSONDecodeError:
                     pass
+                else:
+                    process_lines.append(" ".join(line))
 
             else:
                 try:
-                    ast.literal_eval(line[4])
+                    json.loads(line[4])
                     process_lines.append(" ".join(line))
-                except ValueError:
-                    process_lines.append(" ".join(line))
-                except IndexError:
-                    process_lines.append(" ".join(line))
-                except SyntaxError:
+                except json.decoder.JSONDecodeError:
                     pass
+                else:
+                    process_lines.append(" ".join(line))
 
         if type_ == "NODE":
             if len(process_lines) == 0:
@@ -575,7 +570,7 @@ def get_blockchain(chain, nodes, queue):
         if line:
             line = line.split(" ")
             if line[0] == node["ip"]:
-                new_chain_1 = ast.literal_eval(line[2])
+                new_chain_1 = json.loads(line[2])
                 print(f"---BLOCKCHAIN NODE 1 RECEIVED---")
                 break
         else:
@@ -601,7 +596,7 @@ def get_blockchain(chain, nodes, queue):
         if line:
             line = line.split(" ")
             if line[0] == node["ip"]:
-                new_chain_2 = ast.literal_eval(line[2])
+                new_chain_2 = json.loads(line[2])
                 print(f"---BLOCKCHAIN NODE 2 RECEIVED---")
                 break
         else:
@@ -633,7 +628,7 @@ def get_stake_trans(nodes, queue):
         if line:
             line = line.split(" ")
             if line[0] == node["ip"]:
-                stake_trans_1 = ast.literal_eval(line[2])
+                stake_trans_1 = json.loads(line[2])
                 print("---STAKE TRANS 1 RECEIVED---")
                 break
         else:
@@ -656,7 +651,7 @@ def get_stake_trans(nodes, queue):
         if line:
             line = line.split(" ")
             if line[0] == node["ip"]:
-                stake_trans_2 = ast.literal_eval(line[2])
+                stake_trans_2 = json.loads(line[2])
                 print("---STAKE TRANS 2 RECEIVED---")
                 break
         else:
@@ -691,7 +686,7 @@ def get_nodes(nodes, queue):
         if line:
             line = line.split(" ")
             if line[0] == node["ip"]:
-                nodes_1 = ast.literal_eval(line[2])
+                nodes_1 = json.loads(line[2])
                 print("---NODES 1 RECEIVED---")
                 break
         else:
@@ -715,7 +710,7 @@ def get_nodes(nodes, queue):
         if line:
             line = line.split(" ")
             if line[0] == node["ip"]:
-                nodes_2 = ast.literal_eval(line[2])
+                nodes_2 = json.loads(line[2])
                 print("---NODES 2 RECEIVED---")
                 break
         else:
@@ -727,15 +722,6 @@ def get_nodes(nodes, queue):
         print("---NODES UPDATED---")
         return nodes
     return get_nodes(pre_nodes, queue)
-
-
-def send_node(host):
-    with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
-        nodes = json.load(file)
-    str_node = str(nodes)
-    str_node = str_node.replace(" ", "")
-    send(host, "NREQ " + str_node)
-
 
 def new_node(initiation_time, ip, pub_key, port, node_version, node_type, sig):
     with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
@@ -918,11 +904,10 @@ def message_handler(message):
             raise ValueTypeError("time not given as float")
 
         try:
-            ast.literal_eval(message[4])
-        except ValueError:
-            raise ValueTypeError("BLock is not given as block")
-        except SyntaxError:
-            raise NotCompleteError("block not complete")
+            if not isinstance(json.loads(message[4]), list):
+                raise ValueTypeError("Blockchain not given as Blockchain")
+        except json.decoder.JSONDecodeError:
+            raise NotCompleteError("Blockchain not complete yet")
 
     elif protocol == "ONLINE?":
         # host, ONLINE?
@@ -984,28 +969,25 @@ def message_handler(message):
     elif protocol == "BREQ":
         # host, BREQ, blockchain
         try:
-            ast.literal_eval(message[2])
-        except ValueError:
-            raise ValueTypeError("Blockchain not given as Blockchain")
-        except SyntaxError:
+            if not isinstance(json.loads(message[2]), list):
+                raise ValueTypeError("Blockchain not given as Blockchain")
+        except json.decoder.JSONDecodeError:
             raise NotCompleteError("Blockchain not complete yet")
 
     elif protocol == "SREQ":
         try:
-            ast.literal_eval(message[2])
-        except ValueError:
-            raise ValueTypeError("Stake trans not given as Stake trans")
-        except SyntaxError:
-            raise NotCompleteError("Stake trans not complete yet")
+            if not isinstance(json.loads(message[2]), list):
+                raise ValueTypeError("Blockchain not given as Blockchain")
+        except json.decoder.JSONDecodeError:
+            raise NotCompleteError("Blockchain not complete yet")
 
     elif protocol == "NREQ":
         # host, NREQ, nodes
         try:
-            ast.literal_eval(message[2])
-        except ValueError:
-            raise ValueTypeError("Nodes not given as Node List")
-        except SyntaxError:
-            raise NotCompleteError("NREQ list not complete yet")
+            if not isinstance(json.loads(message[2]), list):
+                raise ValueTypeError("Blockchain not given as Blockchain")
+        except json.decoder.JSONDecodeError:
+            raise NotCompleteError("Blockchain not complete yet")
 
     elif protocol == "TRANS":
         # host, TRANS, time of transaction, sender public key, receiver public key, amount sent, sig

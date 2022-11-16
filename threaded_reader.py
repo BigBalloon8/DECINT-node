@@ -17,15 +17,14 @@ def read(chain, queue):
             message = line.split(" ")
 
             if message[1] == "VALID":  # update block to true
-                print("VALID")
                 blockchain.validate_blockchain(int(message[2]), message[0], float(message[3]), message[4], chain)
 
             elif message[1] == "BLOCKCHAIN?":
-                #print("BLOCKCHAIN?")
-                send_chain = "BREQ " + str(chain.return_blockchain()).replace(" ", "")
+                send_chain = "BREQ " + json.dumps(chain.return_blockchain().present_chain).replace(" ", "")
                 messages = textwrap.wrap(send_chain, 5000)
-                for message_ in messages:
+                for message_ in messages[:-1]:
                     node.send(message[0], message_)
+                node.send(message[0], messages[-1] + "END")
 
     except:
         import time

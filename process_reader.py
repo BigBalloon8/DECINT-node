@@ -1,3 +1,4 @@
+import random
 import traceback
 import node
 import blockchain
@@ -5,6 +6,7 @@ import json
 import textwrap
 import os
 import time
+import random
 
 
 def read(queue):
@@ -35,16 +37,23 @@ def read(queue):
                         #node.send(message[0], "yh")
 
                     elif message[1] == "GET_NODES":
-                        #print("GET_NODES")
-                        node.send_node(message[0])
+                        with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
+                            nodes = json.load(file)
+                        str_node = json.dumps(nodes).replace(" ", "")
+                        messages = textwrap.wrap("NREQ " + str_node, 5000)
+                        for message_ in messages[:-1]:
+                            node.send(message[0], message_)
+                        node.send(message[0], messages[-1] + "END")
+
 
                     elif message[1] == "GET_STAKE_TRANS":
                         with open(f"{os.path.dirname(__file__)}/info/stake_trans.json", "r") as file:
                             stake_trans = json.load(file)
-                        temp_message = "SREQ " + str(stake_trans).replace(" ", "")
+                        temp_message = "SREQ " + json.dumps(stake_trans).replace(" ", "")
                         messages = textwrap.wrap(temp_message, 5000)
-                        for message_ in messages:
+                        for message_ in messages[:-1]:
                             node.send(message[0], message_)
+                        node.send(message[0], messages[-1] + "END")
     except:
         while True:
             time.sleep(0.5)
