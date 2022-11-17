@@ -7,6 +7,7 @@ via people mining our cryptocurrency. Their CPUs are running a low demanding PoS
 
 The miners are rewarded via the crypto made through transaction fees thus the product is funded by the people.
 
+The network is not up and running yet
 
 ## Install the Node
 
