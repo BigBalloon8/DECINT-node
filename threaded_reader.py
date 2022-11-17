@@ -17,6 +17,7 @@ def read(chain, queue):
             message = line.split(" ")
 
             if message[1] == "VALID":  # update block to true
+                print("VALID")
                 blockchain.validate_blockchain(int(message[2]), message[0], float(message[3]), message[4], chain)
 
             elif message[1] == "BLOCKCHAIN?":

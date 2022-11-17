@@ -15,6 +15,7 @@ import json
 import copy
 import traceback
 import textwrap
+import multiprocessing
 
 __version__ = "1.0"
 
@@ -75,7 +76,7 @@ class MessageManager:
         self.thread_queue = thread_queue
 
     def write(self, address, message):
-
+        print(f"Message from {address} , {message}\n")
         if "DIST" in message:
             message = f"{address[0]} {message}".split(" ")
             while True:
@@ -127,10 +128,12 @@ class MessageManager:
                     self.process_queue.put(" ".join(message))
 
         for i in self.long_messages:
-            if "END" in i[1]:
+            if i[1][-3:] == "END":
+                print("FOUND LONG MESSAGE "*5)
                 if "#" in i[1]:  # valid messages are sent with # to prevent clashing with _REQ messages
                     complete_message = [k for k in self.long_messages.t_list if "#" in k[1] and i[0] == k[0]]
                     long_write_lines = ''.join([j[1].replace("#", "") for j in complete_message])
+
                 else:
                     complete_message = [k for k in self.long_messages.t_list if "#" not in k[1] and i[0] == k[0]]
                     long_write_lines = ''.join([j[1] for j in complete_message])
@@ -153,8 +156,11 @@ class MessageManager:
                 for m in complete_message:
                     self.long_messages.remove(m)
 
+def message_manager_procces(message_manager: MessageManager, message_pipeline):
+    while True:
+        message_manager.write(*message_pipeline.recv())
 
-class MessageManagerThread(threading.Thread):
+class MessageManagerProcess(threading.Thread):
 
     def __init__(self, message_manager: MessageManager):
         threading.Thread.__init__(self)
@@ -168,8 +174,8 @@ class MessageManagerThread(threading.Thread):
                     self.message_manager.write(line[0], line[1])
                     self.lines.remove(line)
 
-    def append(self, line):
-        self.lines.append(line)
+    def append(self, data):
+        self.lines.append(data)
 
 
 # recieve from nodes
@@ -182,16 +188,14 @@ def receive(req_queue, trans_queue, process_queue, thread_queue):
     server.bind(("", 1379))
     server.listen()
     message_handle = MessageManager(req_queue, trans_queue, process_queue, thread_queue)
-    message_thread = MessageManagerThread(message_handle)
-    message_thread.start()
+    receive_pipe, send_pipe = multiprocessing.Pipe()
+    p = multiprocessing.Process(target=message_manager_procces, args=(message_handle, receive_pipe))
+    p.start()
     while True:
         try:
             client, address = server.accept()
             message = client.recv(2 ** 16).decode("utf-8")  # .split(" ")
-            if "\n" in message:
-                continue
-            print(f"Message from {address} , {message}\n")
-            message_thread.append((address, message))
+            send_pipe.send((address, message))
         except Exception as e:
             traceback.print_exc()
 
