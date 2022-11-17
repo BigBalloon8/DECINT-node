@@ -127,7 +127,7 @@ class MessageManager:
                     self.process_queue.put(" ".join(message))
 
         for i in self.long_messages:
-            if "END" in i[1]:
+            if i[1][-3:] == "END":
                 if "#" in i[1]:  # valid messages are sent with # to prevent clashing with _REQ messages
                     complete_message = [k for k in self.long_messages.t_list if "#" in k[1] and i[0] == k[0]]
                     long_write_lines = ''.join([j[1].replace("#", "") for j in complete_message])
