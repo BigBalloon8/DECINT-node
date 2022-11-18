@@ -160,23 +160,6 @@ def message_manager_procces(message_manager: MessageManager, message_pipeline):
     while True:
         message_manager.write(*message_pipeline.recv())
 
-class MessageManagerProcess(threading.Thread):
-
-    def __init__(self, message_manager: MessageManager):
-        threading.Thread.__init__(self)
-        self.lines = []
-        self.message_manager = message_manager
-
-    def run(self):
-        while True:
-            if self.lines:
-                for line in self.lines:
-                    self.message_manager.write(line[0], line[1])
-                    self.lines.remove(line)
-
-    def append(self, data):
-        self.lines.append(data)
-
 
 # recieve from nodes
 def receive(req_queue, trans_queue, process_queue, thread_queue):
@@ -199,6 +182,26 @@ def receive(req_queue, trans_queue, process_queue, thread_queue):
         except Exception as e:
             traceback.print_exc()
 
+
+def receive_with_thread(req_queue, trans_queue, process_queue, thread_queue): #allows proccess to be closed properly
+    """
+    message is split into array the first value the type of message the second value is the message
+    """
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    server.bind(("", 1379))
+    server.listen()
+    message_handle = MessageManager(req_queue, trans_queue, process_queue, thread_queue)
+    receive_pipe, send_pipe = multiprocessing.Pipe()
+    p = threading.Thread(target=message_manager_procces, args=(message_handle, receive_pipe))
+    p.start()
+    while True:
+        try:
+            client, address = server.accept()
+            message = client.recv(2 ** 16).decode("utf-8")  # .split(" ")
+            send_pipe.send((address, message))
+        except Exception as e:
+            traceback.print_exc()
 
 # send to node
 def send(host, message, port=1379, send_all=False):

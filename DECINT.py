@@ -27,7 +27,7 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
 
     if install:
         req_queue = Queue()
-        receive = Process(target=node.receive, args=(req_queue, None, None, None,))
+        receive = Process(target=node.receive_with_thread, args=(req_queue, None, None, None,))
         receive.start()
         node.get_nodes([], req_queue)
         with open(f"{os.path.dirname(__file__)}./info/Public_key.txt", "r") as file:
@@ -41,7 +41,7 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
 
     elif update:
         req_queue = Queue()
-        receive = Process(target=node.receive, args=(req_queue, None, None, None,))
+        receive = Process(target=node.receive_with_thread, args=(req_queue, None, None, None,))
         receive.start()
         node.get_nodes([], req_queue)
         click.echo("In order to update your Node please enter a bit of information")
@@ -62,7 +62,7 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
 
     elif delete:
         req_queue = Queue()
-        receive = Process(target=node.receive, args=(req_queue, None, None, None,))
+        receive = Process(target=node.receive_with_thread, args=(req_queue, None, None, None,))
         receive.start()
         node.get_nodes([], req_queue)
         click.echo("In order to delete your Node please enter a bit of information")
@@ -75,7 +75,7 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
 
     elif stake:
         req_queue = Queue()
-        receive = Process(target=node.receive, args=(req_queue, None, None, None,))
+        receive = Process(target=node.receive_with_thread, args=(req_queue, None, None, None,))
         receive.start()
         node.get_nodes([], req_queue)
         priv_key = click.prompt("Private Key", type=str)
@@ -100,7 +100,7 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
 
     elif unstake:
         req_queue = Queue()
-        receive = Process(target=node.receive, args=(req_queue, None, None, None,))
+        receive = Process(target=node.receive_with_thread, args=(req_queue, None, None, None,))
         receive.start()
         node.get_nodes([], req_queue)
         priv_key = input("Private Key: ")
@@ -130,7 +130,7 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
 
     elif trans:
         req_queue = Queue()
-        receive = Process(target=node.receive, args=(req_queue, None, None, None,))
+        receive = Process(target=node.receive_with_thread, args=(req_queue, None, None, None,))
         receive.start()
         node.get_nodes([], req_queue)
         priv_key = click.prompt("Private Key", type=str)
@@ -153,7 +153,7 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
 
     elif test_install:
         req_queue = Queue()
-        receive = Process(target=node.receive, args=(req_queue, None, None, None,))
+        receive = Process(target=node.receive_with_thread, args=(req_queue, None, None, None,))
         receive.start()
         node.get_nodes([], req_queue)
         install_decint.test_install()
@@ -175,7 +175,7 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
 
     elif test_trans:
         req_queue = Queue()
-        receive = Process(target=node.receive, args=(req_queue, None, None, None,))
+        receive = Process(target=node.receive_with_thread, args=(req_queue, None, None, None,))
         receive.start()
         node.get_nodes([], req_queue)
         receive.terminate()
