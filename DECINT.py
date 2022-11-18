@@ -177,6 +177,7 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
         req_queue = Queue()
         receive = Process(target=node.receive_with_thread, args=(req_queue, None, None, None,))
         receive.start()
+        
         node.get_nodes([], req_queue)
         receive.terminate()
         blockchain.tester(testing_rate)
