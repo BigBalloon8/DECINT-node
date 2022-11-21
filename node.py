@@ -129,7 +129,7 @@ class MessageManager:
 
         for i in self.long_messages:
             if i[1][-3:] == "END":
-                print("FOUND LONG MESSAGE "*5)
+                #print("FOUND LONG MESSAGE "*5)
                 if "#" in i[1]:  # valid messages are sent with # to prevent clashing with _REQ messages
                     complete_message = [k for k in self.long_messages.t_list if "#" in k[1] and i[0] == k[0]]
                     long_write_lines = ''.join([j[1].replace("#", "") for j in complete_message])
@@ -156,7 +156,8 @@ class MessageManager:
                 for m in complete_message:
                     self.long_messages.remove(m)
 
-def message_manager_procces(message_manager: MessageManager, message_pipeline):
+
+def message_manager_process(message_manager: MessageManager, message_pipeline):
     while True:
         message_manager.write(*message_pipeline.recv())
 
@@ -172,7 +173,7 @@ def receive(req_queue, trans_queue, process_queue, thread_queue):
     server.listen()
     message_handle = MessageManager(req_queue, trans_queue, process_queue, thread_queue)
     receive_pipe, send_pipe = multiprocessing.Pipe()
-    p = multiprocessing.Process(target=message_manager_procces, args=(message_handle, receive_pipe))
+    p = multiprocessing.Process(target=message_manager_process, args=(message_handle, receive_pipe))
     p.start()
     while True:
         try:
@@ -193,7 +194,7 @@ def receive_with_thread(req_queue, trans_queue, process_queue, thread_queue): #a
     server.listen()
     message_handle = MessageManager(req_queue, trans_queue, process_queue, thread_queue)
     receive_pipe, send_pipe = multiprocessing.Pipe()
-    p = threading.Thread(target=message_manager_procces, args=(message_handle, receive_pipe))
+    p = threading.Thread(target=message_manager_process, args=(message_handle, receive_pipe))
     p.start()
     while True:
         try:
