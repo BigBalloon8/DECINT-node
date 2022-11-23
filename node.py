@@ -5,7 +5,6 @@ import socket
 import random
 import threading
 import time
-import ast
 import blockchain
 import time
 from ecdsa import SigningKey, VerifyingKey, SECP112r2
