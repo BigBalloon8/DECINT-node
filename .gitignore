@@ -2,3 +2,7 @@ __pycache__/
 DECINT.egg-info/
 *.pyc
 
+/white_paper.aux
+/white_paper.synctex.gz
+/white_paper.log
+
