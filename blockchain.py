@@ -243,8 +243,16 @@ class Blockchain:
         return total
 
     def hash_block(self, block):
-        string_block = str(block).replace(" ", "")
-        hashed = hashlib.sha256(string_block.encode())
+        to_hash = ""
+        if isinstance(block[-1], list):
+            trans = block[1:-3]
+        else:
+            trans = block[1:]
+        to_hash += block[0][0]
+        for i in trans:
+            to_hash += i["sig"]
+        #string_block = str(block).replace(" ", "")
+        hashed = hashlib.sha256(to_hash.encode())
         hex_hashed = hashed.hexdigest()
         return hex_hashed
 
