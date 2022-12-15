@@ -335,6 +335,7 @@ class Blockchain:
                                 trans["AI_reward"][trans["pub_keys"].index(wallet_address)] / sum(
                                 trans["AI_reward"])))
 
+
         return value
 
     def get_stake_value(self, wallet_address, block_index=None):
