@@ -3,6 +3,7 @@
 \usepackage[parfill]{parskip}
 \usepackage{tabularx}
 \usepackage{amsmath}
+\usepackage{graphicx}
 
 \title{DECINT WHITE PAPER}
 \author{Christopher Rae \\ \begin{small} email: raecd123@gmail.com \end{small}}
@@ -174,11 +175,35 @@ The protocols that have are deemed as long message are the message received on b
 
 
 \section{AI}
-\subsection{Problems}
-Distributed data parallelism is often used to train large machine learning models on large datasets. The dataset is divided and distributed across multiple processing units. DECINT AI nodes are designed for distributed data parallelism and not model parallelism. In the case of the DECINT blockchain the processing units are the AI training nodes. Typically when training AI using distributed data parallelism, networking plays a huge role. The problem is when nodes are run over consumer wifi and have the potential to be training the same model on opposite ends of the globe, you get low bandwidths and high latency never mind the fact that each node will have completely different specifications.
+\subsection{Distributed Data Parallelism}
+DECINT AI nodes are designed for distributed data parallelism and not model parallelism. In the most basic form of distributed data parallelism the data is divided into smaller subsets or "mini-batches." Each mini-batch contains a subset of the data, and the model is trained on each mini-batch independently. The model is then replicated across multiple GPUs or machines, and each replica is trained on a different mini-batch. As the model is trained on each mini-batch, the gradients are calculated and averaged across all replicas. The averaged gradients are then used to update the model parameters, which are shared across all replicas. This process is repeated for each mini-batch until the model has been trained on all of the data.
 
+In a synchronous centralized architecture the gradients are sent to a parameter server who's sole purpose is to average the gradients, then update the parameters with the averaged gradients and the distribute the new parameters  to each replica.
 
+In a synchronous decentralized architecture each replica sends its gradients to every other replica using a technique called all reduce: 
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=10cm]{img.png}
+  \caption{Example of All Reduce}
+\end{figure}
+
+After the all reduce takes place each parameter can be divided by n number of replicas in order to calculate the average, and then the local parameters can be updated. There are many method to to optimize the all reduce step such as using a ring all reduce algorithm. 
+
+In order for each replica to be working at maximum efficiency they must finish calculating their gradients at the same time otherwise replicas can become idol.
+
+\subsection{Bandwidth}
+As most nodes will be run from homes and not data centres, wifi bandwidths will act as a large bottleeck to the training speed. The average internet speed in the U.S. is 189Mbps for download and 23Mbps for upload. Usually when AI is trained over multiple machines you can expect to see wired connection of speed upto 100s of Gbps.
+
+So knowing this we have to come up with ways of reducing this effect of low bandwidths. The first option is to use a decentralized architecture is has been proved that a decentralized architectures handle better under low bandwidths
+
+(https://proceedings.neurips.cc/paper/2017/file/f75526659f31040afeb61cb7133e4e6d-Paper.pdf)  
+
+\subsection{Synchronism}
+
+\subsection{Latency}
 
 \bibliographystyle{plain}
+
 \bibliography{reference}
 \end{document}

@@ -2,9 +2,8 @@ __pycache__/
 DECINT.egg-info/
 *.pyc
 
-/white_paper.aux
-/white_paper.synctex.gz
-/white_paper.log
-
-/white_paper.toc
-/white_paper.dvi
+/Whitepaper/white_paper.synctex.gz
+/Whitepaper/white_paper.toc
+/Whitepaper/white_paper.aux
+/Whitepaper/white_paper.dvi
+/Whitepaper/white_paper.log
