@@ -1,6 +1,7 @@
-\documentclass[11pt]{extarticle}
+\documentclass[11pt]{article}
 \usepackage[margin=1in]{geometry}
 \usepackage[parfill]{parskip}
+\usepackage{tabularx}
 \usepackage{amsmath}
 
 \title{DECINT WHITE PAPER}
@@ -74,22 +75,109 @@ If a transaction is not received by the validator it will not be added to the ch
 
 \section{Communication}
 \subsection{Structure}
-TCP is used to communicate messages, which are encoded in UTF-8. All messages are communicated as a string. Each message starts with the protocol and is followed by the information for that protocol. Different Protocols contain different information for example a transacrion message contains the time, sender, reciever, amount sent and the signature. Each segment of the message is seperate with with a space (" "):
+TCP is used to communicate messages, which are encoded in UTF-8. All messages are communicated as a string. Each message starts with the protocol and is followed by the information for that protocol. Different Protocols contain different information for example a transaction message contains the time, sender, receiver, amount sent and the signature. Each element of the message is separate with with a space (" "):
 
 \begin{center}
-TRANS \hspace{0.1cm} 1802.9900985 \hspace{0.1cm} ... \hspace{0.1cm} ... \hspace{0.1cm}  679.0 \hspace{0.1cm} ...
+TRANS\hspace{0.1cm} 1802.9900985 \hspace{0.1cm} ae32... \hspace{0.1cm} 5687... \hspace{0.1cm}  679.0 \hspace{0.1cm} b34d...
 \end{center}
 
-It is important to make sure spaces a removed if sending a json object(when updating the blockchain):
+It is important to make sure spaces are removed if sending a json object:
 
 \begin{center}
 "[{"a":12,"b":34,"c":-3},12]" $\neq$ "[{"a":12, "b":34, "c":-3}, 12]"
 \end{center}
 
+\subsection{Distributor Nodes}
+In order to make sure transaction reach every node to avoid lost transactions, transactions must be sent via distributor nodes. Distributor nodes soul purpose is to distributed transactions to other nodes. When a distributor node send a distributed transaction it concatenates "DIST" follows by the the IP address of whom ever sent the message onto the transaction(all separated with a spaces).
+
+When a node announces itself it announces its node type normal nodes have the type "Blockchain" distributor noes have the type "dist".
+
+\begin{center}
+DIST\hspace{0.1cm} 192.168.0.2\hspace{0.1cm} TRANS\hspace{0.1cm} 1802.9900985 \hspace{0.1cm} ae32... \hspace{0.1cm} 5687... \hspace{0.1cm}  679.0 \hspace{0.1cm} b34d...
+\end{center}
+
+Distributors do not stake or hold the track the transactions.
+
 \subsection{Protocols}
+There are many different protocols used to communicate between nodes
+\subsubsection*{Boot}
+\begin{center}
+\newcolumntype{R}{>{\raggedright\arraybackslash}X}%
+\begin{tabularx}{\textwidth}{| l | l | R | R |} 
+\hline
+Protocol & Long Message & Elements & Summary \\ \hline
+GET\_NODES & False &  None & A request for a list of all nodes. \\ \hline
+NREQ & True & List of all nodes & A Response to GET\_NODES \\ \hline
+GET\_STAKE\_TRANS & False & None & A request for a list of all stake transactions. \\ \hline
+SREQ & True & List of stake transactions & A Response to GET\_STAKE\_TRANS \\ \hline
+BLOCKCHAIN? & False & None & A request for the current blockchain \\ \hline
+BREQ & True & Blockchain &  A Response to BLOCKCHAIN? \\ \hline
+\end{tabularx}
+\end{center}
+
+\subsubsection*{Transactions}
+\begin{center}
+\newcolumntype{R}{>{\raggedright\arraybackslash}X}%
+\begin{tabularx}{\textwidth}{| l | l | R | R |} 
+\hline
+Protocol & Long Message & Elements & Summary \\ \hline
+TRANS & False & Time, Sender's Wallet, Receiver's Wallet, Amount, Signature & A basic token transfer transaction \\ \hline
+STAKE & False & Time, Staker's Wallet, Amount,  Signature & Alerts node that staker's wallet is staking X amount\\ \hline
+UNSTAKE & False & Time, Staker's Wallet, Amount,  Signature & Alerts node that staker's wallet is unstaking X amount\\ \hline
+\end{tabularx}
+\end{center}
+
+\subsubsection*{Node Info}
+\begin{center}
+\newcolumntype{R}{>{\raggedright\arraybackslash}X}%
+\begin{tabularx}{\textwidth}{| l | l | R | R |} 
+\hline
+Protocol & Long Message & Elements & Summary \\ \hline
+HELLO & False & Communication Port, Wallet, Version, Node Type, Signature & Used to announce a node to other nodes \\ \hline
+UPDATE & False & Time of Update, Old Wallet, New Wallet, Communication Port, Version, Signature & Used to Update a node's information. (If the wallet doesn't change old wallet $=$ new wallet)\\ \hline
+DELETE & False & Time of Deletion, Wallet, Signature & Used remove node from other node's list of nodes \\ \hline
+\end{tabularx}
+\end{center}
+
+\subsubsection*{Blockchain}
+\begin{center}
+\newcolumntype{R}{>{\raggedright\arraybackslash}X}%
+\begin{tabularx}{\textwidth}{| l | l | R | R |} 
+\hline
+Protocol & Long Message & Elements & Summary \\ \hline
+VALID & True & Block Index, Time of Validation, List of Valid Transactions & Used by validator to announce a valid block.\\ \hline
+\end{tabularx}
+\end{center}
+
+\subsubsection*{Miscellaneous}
+\subsubsection*{Blockchain}
+\begin{center}
+\newcolumntype{R}{>{\raggedright\arraybackslash}X}%
+\begin{tabularx}{\textwidth}{| l | l | R | R |} 
+\hline
+Protocol & Long Message & Elements & Summary \\ \hline
+ONLINE? & False & None & Acts as a ping to check if a node is online. \\ \hline
+ERROR & False & Error Message & Sent as a response to a node when a message is received with invalid structure or information. \\ \hline
+\end{tabularx}
+\end{center}
+
+\subsubsection*{AI Protocols}
+\textbf{Under Construction}
+
+\subsection{Boot messages}
+When a Node boots it updates its list of nodes, blockchain and stake transaction by asking for the current information from other nodes. in order to prevent malicious nodes from sending false information nodes reach out for the information from 2 different nodes and compare. 
+
+\subsection{Long Messages}
+When using a language like python the maximum size a TCP socket can send and receive is usually 65535 bytes. Certain protocols have a chance of producing messages larger than 65535 bytes such as the valid protocol in which the validator sends a list of valid transactions to every node if there happened to be 10000 valid transactions then the valid transaction list would be larger than 65535 bytes. we get around this by splitting the message into chunks of 5000 characters. "END" followed by the hash of the message is concatenated onto the end of the final chunk with no spaces added. This indicated to the node that all chunks of the message have been sent and allows the nodes to verify the entire message has been received by checking the hash. 
+
+The protocols that have are deemed as long message are the message received on boot and valid messages. All the REQ messages are received one at a time and cannot be received by the same node for security reasons and so will not run the risk of chunks from different messages being concatenated together. Valid message can be received at the same time as any of the REQ protocols if the message where from the same node there would be no way to differentiate between the REQ message and the valid message, thus the message handler would concatenate the chunk wrong. In order to circumvent this valid chunks have a "\#" concatenated onto the front of each chunk which allows the message manager to spot the difference between REQ and valid messages
+
 
 \section{AI}
 \subsection{Problems}
+Distributed data parallelism is often used to train large machine learning models on large datasets. The dataset is divided and distributed across multiple processing units. DECINT AI nodes are designed for distributed data parallelism and not model parallelism. In the case of the DECINT blockchain the processing units are the AI training nodes. Typically when training AI using distributed data parallelism, networking plays a huge role. The problem is when nodes are run over consumer wifi and have the potential to be training the same model on opposite ends of the globe, you get low bandwidths and high latency never mind the fact that each node will have completely different specifications.
+
+
 
 \bibliographystyle{plain}
 \bibliography{reference}
