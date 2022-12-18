@@ -193,17 +193,19 @@ After the all reduce takes place each parameter can be divided by n number of re
 In order for each replica to be working at maximum efficiency they must finish calculating their gradients at the same time otherwise replicas can become idol.
 
 \subsection{Bandwidth}
-As most nodes will be run from homes and not data centres, wifi bandwidths will act as a large bottleeck to the training speed. The average internet speed in the U.S. is 189Mbps for download and 23Mbps for upload. Usually when AI is trained over multiple machines you can expect to see wired connection of speed upto 100s of Gbps.
+As most nodes will be run from homes and not data centres, wifi bandwidths will act as a large bottleneck to the training speed. The average internet speed in the U.S. is 189Mbps for download and 23Mbps for upload. Usually when AI is trained over multiple machines you can expect to see wired connection of speed 100s of Gbps.
 
-So knowing this we have to come up with ways of reducing this effect of low bandwidths. The first option is to use a decentralized architecture is has been proved that a decentralized architectures handle better under low bandwidths
+So knowing this we have to come up with ways of reducing this effect of low bandwidths. The first option is to use a decentralized architecture is has been proven that a decentralized architectures handle low bandwidths better than centralized architectures. 
 
-(https://proceedings.neurips.cc/paper/2017/file/f75526659f31040afeb61cb7133e4e6d-Paper.pdf)  
+Gradient quantization involves reducing the precision of the gradients by representing them using fewer bits for example if your gradients have the data type of float32 you would compress them to float16. This can reduce the amount of data that needs to be transmitted.
+
+Gradient sparsification involves identifying and removing gradients that are close to zero, as these gradients have minimal impact on the model's parameters. This can significantly reduce the amount of data that needs to be transmitted
+
 
 \subsection{Synchronism}
 
 \subsection{Latency}
 
 \bibliographystyle{plain}
-
 \bibliography{reference}
 \end{document}
