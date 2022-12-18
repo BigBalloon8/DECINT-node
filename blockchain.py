@@ -578,14 +578,15 @@ class Blockchain:
         if validating:
             message = f"VALID {block_index} {time_of_validation} {json.dumps(valid_trans).replace(' ','')}"
             message_len = len(message)
+            message_hash = node.message_hash(message)
             if message_len < 5000:
-                asyncio.run(node.send_to_all("#" + message + "END", no_dist=True))
+                asyncio.run(node.send_to_all("#" + message + "END" + message_hash, no_dist=True))
             else:
                 messages = textwrap.wrap(message, 5000)
                 for message_ in messages[:-1]:
                     asyncio.run(node.send_to_all("#" + message_, no_dist=True))
                     time.sleep(0.005)
-                asyncio.run(node.send_to_all("#" + messages[-1] + "END", no_dist=True))
+                asyncio.run(node.send_to_all("#" + messages[-1] + "END" + message_hash, no_dist=True))
             time.sleep(1)  # stop sending multiple VALIDs
 
         if not validating:

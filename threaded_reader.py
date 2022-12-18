@@ -23,9 +23,10 @@ def read(chain, queue):
             elif message[1] == "BLOCKCHAIN?":
                 send_chain = "BREQ " + json.dumps(chain.return_blockchain().present_chain).replace(" ", "")
                 messages = textwrap.wrap(send_chain, 5000)
+                message_hash = node.message_hash(send_chain)
                 for message_ in messages[:-1]:
                     node.send(message[0], message_)
-                node.send(message[0], messages[-1] + "END")
+                node.send(message[0], messages[-1] + "END"+message_hash)
 
     except:
         import time

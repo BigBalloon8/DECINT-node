@@ -40,10 +40,11 @@ def read(queue):
                         with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
                             nodes = json.load(file)
                         str_node = json.dumps(nodes).replace(" ", "")
+                        message_hash = node.message_hash("NREQ " + str_node)
                         messages = textwrap.wrap("NREQ " + str_node, 5000)
                         for message_ in messages[:-1]:
                             node.send(message[0], message_)
-                        node.send(message[0], messages[-1] + "END")
+                        node.send(message[0], messages[-1] + "END" + message_hash)
 
 
                     elif message[1] == "GET_STAKE_TRANS":
@@ -51,9 +52,10 @@ def read(queue):
                             stake_trans = json.load(file)
                         temp_message = "SREQ " + json.dumps(stake_trans).replace(" ", "")
                         messages = textwrap.wrap(temp_message, 5000)
+                        message_hash = node.message_hash(temp_message)
                         for message_ in messages[:-1]:
                             node.send(message[0], message_)
-                        node.send(message[0], messages[-1] + "END")
+                        node.send(message[0], messages[-1] + "END" + message_hash)
     except:
         while True:
             time.sleep(0.5)

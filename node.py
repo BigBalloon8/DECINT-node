@@ -1,6 +1,7 @@
 """
 node
 """
+import hashlib
 import socket
 import random
 import threading
@@ -127,16 +128,23 @@ class MessageManager:
                     self.process_queue.put(" ".join(message))
 
         for i in self.long_messages:
-            if i[1][-3:] == "END":
+            if i[1][-67:-64] == "END":
                 #print("FOUND LONG MESSAGE "*5)
                 if "#" in i[1]:  # valid messages are sent with # to prevent clashing with _REQ messages
                     complete_message = [k for k in self.long_messages.t_list if "#" in k[1] and i[0] == k[0]]
-                    long_write_lines = ''.join([j[1].replace("#", "") for j in complete_message])
+                    if message_hash(" ".join([k[1].replace("#", "") for k in complete_message])[:-67]) == i[1][-64:]:
+                        long_write_lines = ''.join([j[1].replace("#", "") for j in complete_message])
+                    else:
+                        continue
 
                 else:
                     complete_message = [k for k in self.long_messages.t_list if "#" not in k[1] and i[0] == k[0]]
-                    long_write_lines = ''.join([j[1] for j in complete_message])
-                message = f"{i[0]} {long_write_lines[:-3]}".split(" ")  # [:-4] is to remove END
+                    if message_hash(" ".join([k[1] for k in complete_message])[:-67]) == i[1][-64:]:
+                        long_write_lines = ''.join([j[1] for j in complete_message])
+                    else:
+                        continue
+
+                message = f"{i[0]} {long_write_lines[:-67]}".split(" ")  # [:-4] is to remove END
 
                 try:
                     message_handler(message)
@@ -794,6 +802,8 @@ def version_update(ip, ver):
             nod["version"] = ver
             break
 
+def message_hash(message):
+    return hashlib.sha256(message.encode()).hexdigest()
 
 class NotCompleteError(Exception):
     """
@@ -854,8 +864,6 @@ def message_handler(message):
     UNSTAKE <ip> <unstaking_time> <public_key> <unstake_value> <signature>
     ONLINE? <ip>
     ERROR <ip> <error_message>
-    BLOCKCHAINLEN? <ip>
-    BLENREQ <ip> <number_of_chunks>
     """
     len_1_messages = ["ONLINE?", "BLOCKCHAIN?", "GET_NODES", "BLOCKCHAINLEN?", "GET_STAKE_TRANS"]
     if len(message) == 2:
