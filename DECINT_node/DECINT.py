@@ -1,13 +1,12 @@
 import click
-import install_decint
-import node
+from DECINT_node import install_decint
+from DECINT_node import node
 import time
-import blockchain
+from DECINT_node import blockchain
 import json
-from ecdsa import SigningKey, VerifyingKey, SECP112r2
-import boot
+from ecdsa import SigningKey, SECP112r2
+from DECINT_node import boot
 import os
-import threading
 from multiprocessing import Process, Queue
 
 

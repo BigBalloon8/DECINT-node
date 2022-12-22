@@ -2,8 +2,8 @@ import os
 
 #os.system("pip3 install ecdsa objsize numba")
 
-import node
-import blockchain
+from DECINT_node import node
+from DECINT_node import blockchain
 """
 install dependencies
 create folders
@@ -44,7 +44,7 @@ def test_install():
         file.write(hex_pub)
     with open(f"{os.path.dirname(__file__)}/info/priv_key_testing.txt", "w") as file:
         file.write(hex_priv)
-    node.announce(hex_pub,"1379",node.__version__,"Blockchain", hex_priv)
+    node.announce(hex_pub, "1379", node.__version__, "Blockchain", hex_priv)
 
 if __name__ == '__main__':
     test_install()

@@ -4,7 +4,7 @@ import random
 import os
 import json
 import traceback
-import blockchain
+from DECINT_node import blockchain
 import copy
 
 def hash_num(block_hash):

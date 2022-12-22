@@ -6,15 +6,12 @@ import socket
 import random
 import threading
 import time
-import blockchain
-import time
 from ecdsa import SigningKey, VerifyingKey, SECP112r2
 import asyncio
 import os
 import json
 import copy
 import traceback
-import textwrap
 import multiprocessing
 
 __version__ = "1.0"

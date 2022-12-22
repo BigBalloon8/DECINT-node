@@ -1,12 +1,10 @@
 import os
-import blockchain
-import node
-import threaded_reader
-import trans_reader
-import validator
-import process_reader
+from DECINT_node import blockchain
+from DECINT_node import node
+from DECINT_node import trans_reader
+from DECINT_node import validator
+from DECINT_node import process_reader
 import concurrent.futures
-import socket
 import multiprocessing
 import threading
 

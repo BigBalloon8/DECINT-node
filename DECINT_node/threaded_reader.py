@@ -1,11 +1,8 @@
 import traceback
-import node
-import time
-from requests import get
-import blockchain
+from DECINT_node import node
+from DECINT_node import blockchain
 import json
 import textwrap
-import os
 
 
 def read(chain, queue):
@@ -26,7 +23,7 @@ def read(chain, queue):
                 message_hash = node.message_hash(send_chain)
                 for message_ in messages[:-1]:
                     node.send(message[0], message_)
-                node.send(message[0], messages[-1] + "END"+message_hash)
+                node.send(message[0], messages[-1] + "END" + message_hash)
 
     except:
         import time

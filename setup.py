@@ -1,5 +1,6 @@
 import setuptools
-import node
+from DECINT_node import node
+
 setuptools.setup(
     name="DECINT_node",
     version=f"{node.__version__}",
@@ -9,6 +10,6 @@ setuptools.setup(
     install_requires=["ecdsa", "click", "requests"],
     entry_points={
         "console_scripts":[
-            "DECINT = DECINT:run"
+            "DECINT = DECINT_node.DECINT:run"
     ]}
 )

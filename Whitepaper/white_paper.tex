@@ -203,9 +203,9 @@ Gradient sparsification involves identifying and removing gradients that are clo
 
 \subsection{Synchronism}
 
-Some replicas will have Nvidia A100s and some will have a single Nvidia GTX 1050. As mentioned up above in a synchronise architecture replicas wont average thier gradidents untill all other replicas have completed the back propegation step the problem is different replicas will complete the back propegation step at different times causing the faster replica to be idol.
+Some replicas will have Nvidia A100s and some will have a single Nvidia GTX 1050. As mentioned up above in a synchronise architecture replicas wont average their gradients until all other replicas have completed the back propagation step the problem is different replicas will complete the back propagation step at different times causing the faster replica to be idol.
 
-This means we have to implement a asynchronusism into our architecture(which is decentralized). We do this by applying a Asynchronous Decentralized Parallel Stochastic Gradient algorithm, in which a replica selects a peer at random, pulls that peers parameters, averages them with its local model, finally applies local gradients and saves the updated model in local store to allow other replicas to pull.
+This means we have to implement a asynchronism into our architecture(which is decentralized). We do this by applying a Asynchronous Decentralized Parallel Stochastic Gradient algorithm, in which a replica selects a peer at random, pulls that peers parameters, averages them with its local model, finally applies local gradients and saves the updated model in local store to allow other replicas to pull.
 
 
 

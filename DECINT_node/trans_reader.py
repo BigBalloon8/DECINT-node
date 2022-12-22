@@ -1,14 +1,10 @@
-import node
 import time
 from ecdsa import VerifyingKey, SECP112r2
 import copy
-import blockchain
 import ast
 import requests
-import os
 import traceback
-import json
-import threaded_reader
+from DECINT_node import threaded_reader
 def AI_handler():
     pass
 

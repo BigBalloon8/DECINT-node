@@ -1,12 +1,9 @@
-import random
 import traceback
-import node
-import blockchain
+from DECINT_node import node
 import json
 import textwrap
 import os
 import time
-import random
 
 
 def read(queue):
