@@ -17,3 +17,10 @@ pip install . --user
 DECINT --help
 ```
 
+to setup test environment see Test Environment.md
+
+
+
+
+
+
