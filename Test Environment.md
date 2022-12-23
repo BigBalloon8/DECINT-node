@@ -43,14 +43,14 @@ docker run -d -i --name DT decint
 
 #### Run the Docker test environment
 
-Open each container in an external terminal
+Open each container in an external terminals (individual terminals for each container)
 
 In the D2 container run
 ```bash
 DECINT -d2
 DECINT
 ```
-In all the other containers except DT run (allow time )
+In all the other containers except DT run
 ```bash
 DECINT -ti
 ```
