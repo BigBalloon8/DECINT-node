@@ -8,6 +8,7 @@ from ecdsa import SigningKey, SECP112r2
 from DECINT_node import boot
 import os
 from multiprocessing import Process, Queue
+import socket
 
 
 @click.command()
@@ -163,6 +164,12 @@ def run(install, update, delete, stake, unstake, trans, run_node, test_install, 
     elif d2_install:
         with open(f"{os.path.dirname(__file__)}/info/Public_key.txt", "w") as file:
             file.write("6efa5bfa8a9bfebaacacf9773f830939d8cb4a2129c1a2aaafaaf549")
+        with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
+            nodes = json.load(file)
+        nodes[0]["ip"] = socket.gethostbyname(socket.gethostname())
+        with open(f"{os.path.dirname(__file__)}/info/nodes.json", "w") as file:
+            json.dump(nodes, file)
+
         with open(f"{os.path.dirname(__file__)}/boot.py", "r") as file:
             boot_py = file.read().splitlines()
         for i in range(len(boot_py)):
