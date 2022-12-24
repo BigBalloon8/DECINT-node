@@ -11,7 +11,11 @@ git clone https://github.com/mayfieldmobster/DECINT-dist.git
 
 #### Windows
 ```powershell
-FOR /f "tokens=*" %%i IN ('docker ps -aq') DO docker rm -f %%i
+docker rm --force D2
+docker rm --force D3
+docker rm --force D4
+docker rm --force DD
+docker rm --force DT
 docker rmi decint
 docker rmi decint-dist
 cd DECINT-node
@@ -28,7 +32,11 @@ cd ..
 
 #### Linux
 ```bash
-docker rm -f $(docker ps -aq)
+docker rm --force D2
+docker rm --force D3
+docker rm --force D4
+docker rm --force DD
+docker rm --force DT
 docker rmi decint
 docker rmi decint-dist
 cd DECINT-node
