@@ -21,6 +21,9 @@ docker run -d -i --name DD decint-dist
 docker run -d -i --name DT decint
 ```
 
+It might be useful to save the above the commands in a bash or batch file for future use(if you plan to reset the 
+test environment)
+
 ### 3. Run the Docker test environment
 
 #### (i) Open each container in an external terminals (individual terminals for each container) 
@@ -78,7 +81,7 @@ For more information on how nodes work see the whitepaper.
 
 ### 5. Reset the test environment
 
-To reset the test environment run
+To reset the test environment run to test new changes
 ```bash
 docker rm --force D2
 docker rm --force D3
