@@ -46,13 +46,13 @@ docker run -d -i --name DT decint
 
 #### (i) Open each container in an external terminals (individual terminals for each container) 
 
-use this command:
+Use this command:
 ```bash
 docker exec -it D_ bash
 ```
 Where D_ is the name of the container you want to open.
 
-or use docker desktop to open a terminal for each container.
+Or use docker desktop to open a terminal for each container.
 
 #### (ii) Initialize the D2 node
 
@@ -61,7 +61,7 @@ In the D2 container run
 DECINT -d2
 DECINT
 ```
-the -d2 command if only built in for testing purposes. It will be removed in the future.
+The -d2 command is only built in for testing purposes. It will be removed in the future.
 It does a few different things, It changes the only node in the list of nodes to the D2 nodes ip address. 
 It also changes the nodes stored local public key to the main public key and disable waiting for updates from other
 nodes before excepting new nodes (to essentially jump start the network).
@@ -72,26 +72,25 @@ In all the  D3, D4 and DD containers run
 ```bash
 DECINT -ti
 ```
-the -ti command if only built in for testing purposes. It will be removed in the future.
+The -ti command is only built in for testing purposes. It will be removed in the future.
 It generates a random private and public key to be used for the node and announces the node to the network. 
 Finally, it starts the node as usual.
 
 You now have a test environment with 3 nodes and 1 dist node.
 
-#### Basic test
+### 4. Basic test
 In the DT container run
 ```bash
 DECINT -tt -tr=1
 ```
--tt command if only built in for testing purposes. It will be removed in the future.
-It stands for test transaction it sends test transactions to a dist node to be sent to the network.
+-tt and -tr commands are only built in for testing purposes. It will be removed in the future.
+-tt stands for test transactions it sends a constant flow of transactions to a dist node to be sent to the network.
 
 -tr stand for transaction rate, this will send 1 transaction per second to the network. 
 The maximum transaction rate will depend on how powerful your computer is, on my low spec laptop I can handle 10-20 on 
-my PC with 16GB of RAM and ryzen 7 7800x I have tested up to 1000 to work successfully. 
+my PC with 16GB of RAM and ryzen 7 3800x I have tested up to 1000 transaction per second to work successfully. 
 
 You will be asked for a Private key, this is the private key of the main wallet.
-
 ```
 PRIV: 28855ad3da56117366898695acf1
 ```
