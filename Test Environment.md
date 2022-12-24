@@ -9,36 +9,7 @@ git clone https://github.com/mayfieldmobster/DECINT-dist.git
 ```
 ### 2. Initiate Docker Containers
 
-#### Windows
-```powershell
-docker rm --force D2
-docker rm --force D3
-docker rm --force D4
-docker rm --force DD
-docker rm --force DT
-docker rmi decint
-docker rmi decint-dist
-cd DECINT-node
-docker build -t="decint" .
-cd ..\DECINT-dist
-docker build -t="decint-dist" .
-docker run -d -i --name D2 decint
-docker run -d -i --name D3 decint
-docker run -d -i --name D4 decint
-docker run -d -i --name DD decint-dist
-docker run -d -i --name DT decint
-cd ..
-```
-
-#### Linux
 ```bash
-docker rm --force D2
-docker rm --force D3
-docker rm --force D4
-docker rm --force DD
-docker rm --force DT
-docker rmi decint
-docker rmi decint-dist
 cd DECINT-node
 docker build -t="decint" .
 cd ../DECINT-dist
@@ -104,3 +75,17 @@ PRIV: 28855ad3da56117366898695acf1
 ```
 
 For more information on how nodes work see the whitepaper.
+
+### 5. Reset the test environment
+
+To reset the test environment run
+```bash
+docker rm --force D2
+docker rm --force D3
+docker rm --force D4
+docker rm --force DD
+docker rm --force DT
+docker rmi decint
+docker rmi decint-dist
+```
+Then follow the steps in section 2 to start the test environment again.
