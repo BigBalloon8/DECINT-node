@@ -26,7 +26,7 @@ test environment)
 
 ### 3. Run the Docker test environment
 
-#### (i) Open each container in an external terminals (individual terminals for each container) 
+#### i) Open each container in an external terminals (individual terminals for each container) 
 
 Use this command:
 ```bash
@@ -36,7 +36,7 @@ Where D_ is the name of the container you want to open.
 
 Or use docker desktop to open a terminal for each container.
 
-#### (ii) Initialize the D2 node
+#### ii) Initialize the D2 node
 
 In the D2 container run
 ```bash
@@ -48,7 +48,7 @@ It does a few different things, It changes the only node in the list of nodes to
 It also changes the nodes stored local public key to the main public key and disable waiting for updates from other
 nodes before excepting new nodes (to essentially jump start the network).
 
-#### (iii) Initialize the D3, D4, DD nodes
+#### iii) Initialize the D3, D4, DD nodes
 
 In all the  D3, D4 and DD containers run
 ```bash
@@ -68,7 +68,7 @@ DECINT -tt -tr=1
 -tt and -tr commands are only built in for testing purposes. It will be removed in the future.
 -tt stands for test transactions it sends a constant flow of transactions to a dist node to be sent to the network.
 
--tr stand for transaction rate, this will send 1 transaction per second to the network. 
+-tr stand for transaction rate, this will send 1 transaction (from the main wallet to a random wallet) per second to the network. 
 The maximum transaction rate will depend on how powerful your computer is, on my low spec laptop I can handle 10-20 on 
 my PC with 16GB of RAM and ryzen 7 3800x I have tested up to 1000 transaction per second to work successfully. 
 
