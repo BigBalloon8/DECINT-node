@@ -16,8 +16,8 @@ cd DECINT-node
 pip install . --user
 DECINT --help
 ```
-
-to setup test environment see Test Environment.md
+## Test Environment
+To set up a test environment see Test Environment.md
 
 
 
