@@ -14,6 +14,8 @@ import copy
 import traceback
 import multiprocessing
 
+import DECINT_node.messages as messages
+
 __version__ = "1.0"
 
 
@@ -72,10 +74,110 @@ class MessageManager:
         self.process_queue = process_queue
         self.thread_queue = thread_queue
 
-    def write(self, address, message):
-        print(f"Message from {address} , {message}\n")
-        if "DIST" in message:
-            message = f"{address[0]} {message}".split(" ")
+    @staticmethod
+    def str_to_message(address, message: str, hint=None):
+        if not hint:
+            message.split(" ")
+            hint = message[0]
+        else:
+            message.split()
+        if hint == "GET_NODES":
+            m = messages.GetMessage(m_from=address,
+                                    g_type=messages.GetType.NODES
+                                    )
+        elif hint == "BLOCKCHAIN?":
+            m = messages.GetMessage(m_from=address,
+                                    g_type=messages.GetType.BLOCKCHAIN
+                                    )
+        elif hint == "GET_STAKE_TRANS":
+            m = messages.GetMessage(m_from=address,
+                                    g_type=messages.GetType.STAKE_TRANS
+                                    )
+        elif hint == "TRANS":
+            m = messages.TransMessage(m_from=address,
+                                      t_time=float(message[1]),
+                                      sender=message[2],
+                                      receiver=message[3],
+                                      amount=float(message[4]),
+                                      signature=message[5]
+                                      )
+        elif hint == "STAKE":
+            m = messages.StakeMessage(m_from=address,
+                                      s_type=messages.StakeType.STAKE,
+                                      t_time=float(message[1]),
+                                      staker=message[2],
+                                      amount=float(message[3]),
+                                      signature=message[4]
+                                      )
+        elif hint == "UNSTAKE":
+            m = messages.StakeMessage(m_from=address,
+                                      s_type=messages.StakeType.UNSTAKE,
+                                      t_time=float(message[1]),
+                                      staker=message[2],
+                                      amount=float(message[3]),
+                                      signature=message[4]
+                                      )
+
+        elif hint == "NREQ":
+            m = messages.NREQMessage(m_from=address,
+                                     node_list=json.loads(message[1])
+                                     )
+        elif hint == "BREQ":
+            m = messages.BREQMessage(m_from=address,
+                                     chain=json.loads(message[1])
+                                     )
+        elif hint == "SREQ":
+            m = messages.SREQMessage(m_from=address,
+                                     stake_list=json.loads(message[1])
+                                     )
+
+        elif hint == "HELLO":
+            m = messages.HelloMessage(m_from=address,
+                                      h_time=float(message[1]),
+                                      wallet=message[2],
+                                      port=int(message[3]),
+                                      version=float(message[4]),
+                                      node_type=message[5],
+                                      signature=message[6]
+                                      )
+
+        elif hint == "UPDATE":
+            m = messages.UpdateMessage(m_from=address,
+                                       u_time=float(message[1]),
+                                       old_wallet=message[2],
+                                       new_wallet=message[3],
+                                       port=int(message[4]),
+                                       version=float(message[5]),
+                                       signature=message[6]
+                                       )
+
+        elif hint == "DELETE":
+            m = messages.DeleteMessage(m_from=address,
+                                       d_time=float(message[1]),
+                                       wallet=message[2],
+                                       signature=message[3]
+                                       )
+
+        elif hint == "VALID":
+            m = messages.ValidMessage(m_from=address,
+                                      b_idx=int(message[1]),
+                                      v_time=float(message[2]),
+                                      valid_transactions=json.loads(message[3])
+                                      )
+        elif hint == "ONLINE?":
+            m = messages.OnlineMessage(m_from=address)
+
+        elif hint == "ERROR":
+            m = messages.ErrorMessage(m_from=address,
+                                      error=message[1]
+                                      )
+
+        return m
+
+    def write(self, address, message_):
+        print(f"Message from {address} , {message_}\n")
+        if "DIST" in message_:
+            message = f"{address[0]} {message_}".split(" ")
             while True:
                 try:
                     with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
@@ -103,13 +205,14 @@ class MessageManager:
             if dist_node:
                 message.pop(0)
                 message.pop(0)
-                self.trans_queue.put(" ".join(message))
+                self.trans_queue.put(self.str_to_message(message[0], " ".join(message[1:])))
 
         else:
-            if (" " not in message and "ONLINE?" not in message and "BLOCKCHAIN?" not in message and "GET_NODES" not in message and "GET_STAKE_TRANS" not in message) or "VALID" in message or "BREQ" in message or "SREQ" in message or "NREQ" in message:  # TODO clean this up
-                self.long_messages.append((address[0], message))
+            if (
+                    " " not in message_ and "ONLINE?" not in message_ and "BLOCKCHAIN?" not in message_ and "GET_NODES" not in message_ and "GET_STAKE_TRANS" not in message_) or "VALID" in message_ or "BREQ" in message_ or "SREQ" in message_ or "NREQ" in message_:  # TODO clean this up
+                self.long_messages.append((address[0], message_))
             else:
-                message = f"{address[0]} {message}".split(" ")
+                message = f"{address[0]} {message_}".split(" ")
 
                 try:
                     message_handler(message)
@@ -120,13 +223,13 @@ class MessageManager:
                     return
 
                 if "BLOCKCHAIN?" in message:
-                    self.thread_queue.put(" ".join(message))
+                    self.thread_queue.put(self.str_to_message(address[0], message_))
                 else:
-                    self.process_queue.put(" ".join(message))
+                    self.process_queue.put(self.str_to_message(address[0], message_))
 
         for i in self.long_messages:
             if i[1][-67:-64] == "END":
-                #print("FOUND LONG MESSAGE "*5)
+                # print("FOUND LONG MESSAGE "*5)
                 if "#" in i[1]:  # valid messages are sent with # to prevent clashing with _REQ messages
                     complete_message = [k for k in self.long_messages.t_list if "#" in k[1] and i[0] == k[0]]
                     if message_hash(" ".join([k[1].replace("#", "") for k in complete_message])[:-67]) == i[1][-64:]:
@@ -152,10 +255,10 @@ class MessageManager:
                     return
 
                 if "VALID" in message:
-                    self.thread_queue.put(" ".join(message))
+                    self.thread_queue.put(self.str_to_message(i[0], long_write_lines[:-67]))
 
                 elif "BREQ" in message or "SREQ" in message or "NREQ" in message:
-                    self.req_queue.put(" ".join(message))
+                    self.req_queue.put(self.str_to_message(i[0], long_write_lines[:-67]))
 
                 for m in complete_message:
                     self.long_messages.remove(m)
@@ -188,7 +291,7 @@ def receive(req_queue, trans_queue, process_queue, thread_queue):
             traceback.print_exc()
 
 
-def receive_with_thread(req_queue, trans_queue, process_queue, thread_queue): #allows proccess to be closed properly
+def receive_with_thread(req_queue, trans_queue, process_queue, thread_queue):  # allows proccess to be closed properly
     """
     message is split into array the first value the type of message the second value is the message
     """
@@ -207,6 +310,7 @@ def receive_with_thread(req_queue, trans_queue, process_queue, thread_queue): #a
             send_pipe.send((address, message))
         except Exception as e:
             traceback.print_exc()
+
 
 # send to node
 def send(host, message, port=1379, send_all=False):
@@ -735,6 +839,7 @@ def get_nodes(nodes, queue):
         return nodes
     return get_nodes(pre_nodes, queue)
 
+
 def new_node(initiation_time, ip, pub_key, port, node_version, node_type, sig):
     with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
         nodes = json.load(file)
@@ -799,8 +904,10 @@ def version_update(ip, ver):
             nod["version"] = ver
             break
 
+
 def message_hash(message):
     return hashlib.sha256(message.encode()).hexdigest()
+
 
 class NotCompleteError(Exception):
     """

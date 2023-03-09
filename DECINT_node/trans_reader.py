@@ -85,13 +85,13 @@ def read(chain, trans_queue, thread_queue):
                 if trans_line:
                     #print(f"TRANS LINES: {trans_lines}")
                     if "TRANS" in trans_line:
-                        trans_handler(trans_line,chain)
+                        trans_handler(trans_line, chain)
                     elif "AI_JOB" in trans_line:
-                        AI_job_handler(trans_line,chain)
+                        AI_job_handler(trans_line, chain)
                     elif "STAKE" in trans_line or "UNSTAKE" in trans_line:
-                        staking_handler(trans_line,chain)
+                        staking_handler(trans_line, chain)
                     elif "AI_REWARD" in trans_line:
-                        AI_job_handler(trans_line,chain)
+                        AI_job_handler(trans_line, chain)
         except Exception:
             while True:
                 traceback.print_exc()
