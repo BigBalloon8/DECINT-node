@@ -687,7 +687,6 @@ def read_nodes():
 def validate_blockchain(block_index, ip, time_, block, chain):
     with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
         nodes = json.load(file)
-    block = json.loads(block)
     for node_ in nodes:
         if node_["ip"] == ip:
             wallet = node_["pub_key"]

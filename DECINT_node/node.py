@@ -29,7 +29,7 @@ class TimeOutList:
         if len(self.t_list) == 0:
             return
         for i in range(len(self.t_list)):
-            if time.time() - self.times[i - removed] > 5.0:
+            if time.time() - self.times[i - removed] > 10.0:
                 self.t_list.pop(i - removed)
                 self.times.pop(i - removed)
                 removed += 1
@@ -77,10 +77,11 @@ class MessageManager:
     @staticmethod
     def str_to_message(address, message: str, hint=None):
         if not hint:
-            message.split(" ")
+            message = message.split(" ")
             hint = message[0]
         else:
-            message.split()
+            message = message.split(" ")
+        #print("hint:", hint)
         if hint == "GET_NODES":
             m = messages.GetMessage(m_from=address,
                                     g_type=messages.GetType.NODES
@@ -134,6 +135,7 @@ class MessageManager:
         elif hint == "HELLO":
             m = messages.HelloMessage(m_from=address,
                                       h_time=float(message[1]),
+                                      i_type=messages.InfoType.HELLO,
                                       wallet=message[2],
                                       port=int(message[3]),
                                       version=float(message[4]),
@@ -144,6 +146,7 @@ class MessageManager:
         elif hint == "UPDATE":
             m = messages.UpdateMessage(m_from=address,
                                        u_time=float(message[1]),
+                                       i_type=messages.InfoType.UPDATE,
                                        old_wallet=message[2],
                                        new_wallet=message[3],
                                        port=int(message[4]),
@@ -154,6 +157,7 @@ class MessageManager:
         elif hint == "DELETE":
             m = messages.DeleteMessage(m_from=address,
                                        d_time=float(message[1]),
+                                       i_type=messages.InfoType.DELETE,
                                        wallet=message[2],
                                        signature=message[3]
                                        )
@@ -171,11 +175,15 @@ class MessageManager:
             m = messages.ErrorMessage(m_from=address,
                                       error=message[1]
                                       )
+        else:
+            # TODO Im being lazy fix this
+            print(message)
+            m = messages.Message
 
         return m
 
     def write(self, address, message_):
-        print(f"Message from {address} , {message_}\n")
+        # print(f"Message from {address} , {message_}\n")
         if "DIST" in message_:
             message = f"{address[0]} {message_}".split(" ")
             while True:
@@ -208,8 +216,8 @@ class MessageManager:
                 self.trans_queue.put(self.str_to_message(message[0], " ".join(message[1:])))
 
         else:
-            if (
-                    " " not in message_ and "ONLINE?" not in message_ and "BLOCKCHAIN?" not in message_ and "GET_NODES" not in message_ and "GET_STAKE_TRANS" not in message_) or "VALID" in message_ or "BREQ" in message_ or "SREQ" in message_ or "NREQ" in message_:  # TODO clean this up
+            #if (" " not in message_ and "ONLINE?" not in message_ and "BLOCKCHAIN?" not in message_ and "GET_NODES" not in message_ and "GET_STAKE_TRANS" not in message_) or "VALID" in message_ or "BREQ" in message_ or "SREQ" in message_ or "NREQ" in message_:  # TODO clean this up
+            if "#" in message_ or "VALID" in message_ or "REQ" in message_:
                 self.long_messages.append((address[0], message_))
             else:
                 message = f"{address[0]} {message_}".split(" ")
@@ -229,10 +237,10 @@ class MessageManager:
 
         for i in self.long_messages:
             if i[1][-67:-64] == "END":
-                # print("FOUND LONG MESSAGE "*5)
+                print("FOUND LONG MESSAGE "*5)
                 if "#" in i[1]:  # valid messages are sent with # to prevent clashing with _REQ messages
                     complete_message = [k for k in self.long_messages.t_list if "#" in k[1] and i[0] == k[0]]
-                    if message_hash(" ".join([k[1].replace("#", "") for k in complete_message])[:-67]) == i[1][-64:]:
+                    if message_hash("".join([k[1].replace("#", "") for k in complete_message])[:-67]) == i[1][-64:]:
                         long_write_lines = ''.join([j[1].replace("#", "") for j in complete_message])
                     else:
                         continue
@@ -255,6 +263,7 @@ class MessageManager:
                     return
 
                 if "VALID" in message:
+                    print("long valid message found")
                     self.thread_queue.put(self.str_to_message(i[0], long_write_lines[:-67]))
 
                 elif "BREQ" in message or "SREQ" in message or "NREQ" in message:
@@ -429,172 +438,6 @@ def line_remover(del_lines, file_path):
             file.write(line)
 
 
-def dist_request_reader(type_="TRANS"):
-    while True:
-        try:
-            with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
-                nodes = json.load(file)
-            break
-        except json.decoder.JSONDecodeError:  # somtimes clashes with other threads running the same function
-            continue
-
-    with open(f"{os.path.dirname(__file__)}/dist_messages.txt", "r") as file:
-        lines = file.read().splitlines()
-    dist_nodes = [node_ for node_ in nodes if node_["node_type"] == "dist"]
-
-    trans_protocols = ["TRANS", "STAKE", "UNSTAKE", "AI_JOB_ANNOUNCE"]
-
-    trans_lines = []
-    left_over_lines = []
-
-    trans_messages = []
-    # left_over_messages = []
-
-    for line in lines:
-        message = line.split(" ")
-
-        try:
-            message_handler(message[2:])  # handle message without inputting dist and dist node address
-        except NodeError as e:
-            print([message], e)
-            send(message[0], f"ERROR {e}")
-            left_over_lines.append(line)
-            continue
-        except NotCompleteError as e:
-            continue
-
-        dist_node = False
-        for node_ in dist_nodes:
-            if node_["ip"] == message[0]:
-                dist_node = True
-                break
-
-        if dist_node:
-            message.pop(0)
-            message.pop(0)
-
-            if message[0] in ("", "\n"):
-                lines.remove(" ".join(message))
-
-            elif message[1] in trans_protocols:
-                trans_lines.append(line)
-                trans_messages.append(" ".join(message))
-
-
-            else:
-                left_over_lines.append(line)
-
-    if type_ == "TRANS":
-        if len(trans_messages) == 0:
-            return trans_messages
-        line_remover(trans_lines, f"{os.path.dirname(__file__)}/dist_messages.txt")
-        return trans_messages
-
-    elif type_ == "LEFT_OVER":
-        line_remover(left_over_lines, f"{os.path.dirname(__file__)}/dist_messages.txt")
-
-
-def request_reader(type_, ip="192.168.68.1"):
-    """
-    reads the recent messages and returns the message of the requested type
-    """
-    with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "r") as file:
-        lines = file.read().splitlines()
-
-    thread_protocols = ["VALID", "BLOCKCHAIN?"]
-
-    process_lines = []
-    thread_lines = []
-    nreq_lines = []
-    breq_lines = []
-    sreq_lines = []
-    del_lines = []
-    if str(lines) != "[]":
-        for line in lines:
-            line = line.split(" ")
-            try:
-                message_handler(line)
-            except NodeError as e:
-                print("ERROR LINE: ", [" ".join(line)], e)
-                send(" ".join(line), f"ERROR {e}")
-                del_lines.append(" ".join(line))
-                continue
-            except NotCompleteError:
-                continue
-
-            if line[0] in ("", "\n"):
-                lines.remove(" ".join(line))
-
-            elif line[1] in thread_protocols:
-                thread_lines.append(" ".join(line))
-
-            elif line[1] == "NREQ":
-                try:
-                    json.loads(line[2])
-                    nreq_lines.append(" ".join(line))
-                except json.decoder.JSONDecodeError:
-                    pass
-                else:
-                    process_lines.append(" ".join(line))
-
-            elif line[1] == "BREQ":
-                try:
-                    json.loads(line[2])
-                    breq_lines.append(" ".join(line))
-                except json.decoder.JSONDecodeError:
-                    pass
-                else:
-                    process_lines.append(" ".join(line))
-
-            elif line[1] == "SREQ":
-                try:
-                    json.loads(line[2])
-                    sreq_lines.append(" ".join(line))
-                except json.decoder.JSONDecodeError:
-                    pass
-                else:
-                    process_lines.append(" ".join(line))
-
-            else:
-                try:
-                    json.loads(line[4])
-                    process_lines.append(" ".join(line))
-                except json.decoder.JSONDecodeError:
-                    pass
-                else:
-                    process_lines.append(" ".join(line))
-
-        if type_ == "NODE":
-            if len(process_lines) == 0:
-                return process_lines
-            line_remover(process_lines + del_lines, f"{os.path.dirname(__file__)}/recent_messages.txt")
-            return process_lines
-
-        elif type_ == "NREQ":
-            if len(nreq_lines) == 0:
-                return nreq_lines
-            line_remover(nreq_lines + del_lines, f"{os.path.dirname(__file__)}/recent_messages.txt")
-            return nreq_lines
-
-        elif type_ == "THREAD":
-            if len(thread_lines) == 0:
-                return thread_lines
-            line_remover(thread_lines + del_lines, f"{os.path.dirname(__file__)}/recent_messages.txt")
-            return thread_lines
-
-        elif type_ == "BREQ":
-            if len(breq_lines) == 0:
-                return breq_lines
-            line_remover(breq_lines + del_lines, f"{os.path.dirname(__file__)}/recent_messages.txt")
-            return breq_lines
-
-        elif type_ == "SREQ":
-            if len(sreq_lines) == 0:
-                return sreq_lines
-            line_remover(sreq_lines + del_lines, f"{os.path.dirname(__file__)}/recent_messages.txt")
-            return sreq_lines
-
-
 async def send_to_all(message, no_dist=False):
     """
     sends to all nodes
@@ -610,7 +453,7 @@ async def send_to_all(message, no_dist=False):
         all_nodes = [i for i in all_nodes if i["node_type"] != "dist"]
     for _ in asyncio.as_completed(
             [async_send(node["ip"], message, port=node["port"], send_all=True) for node in all_nodes]):
-        result = await _
+        await _
 
 
 def announce(pub_key, port, version_, node_type, priv_key):
@@ -682,11 +525,10 @@ def get_blockchain(chain, nodes, queue):
             get_blockchain(chain, pre_nodes, queue)
             return
         time.sleep(1)
-        line = queue.get()
+        line: messages.BREQMessage = queue.get()
         if line:
-            line = line.split(" ")
-            if line[0] == node["ip"]:
-                new_chain_1 = json.loads(line[2])
+            if line.m_from == node["ip"]:
+                new_chain_1 = line.chain
                 print(f"---BLOCKCHAIN NODE 1 RECEIVED---")
                 break
         else:
@@ -710,9 +552,8 @@ def get_blockchain(chain, nodes, queue):
         time.sleep(1)
         line = queue.get()
         if line:
-            line = line.split(" ")
-            if line[0] == node["ip"]:
-                new_chain_2 = json.loads(line[2])
+            if line.m_from == node["ip"]:
+                new_chain_2 = line.chain
                 print(f"---BLOCKCHAIN NODE 2 RECEIVED---")
                 break
         else:
@@ -740,11 +581,10 @@ def get_stake_trans(nodes, queue):
         if tries == 10:
             return get_stake_trans(pre_nodes, queue)
         time.sleep(1)
-        line = queue.get()
+        line: messages.SREQMessage = queue.get()
         if line:
-            line = line.split(" ")
-            if line[0] == node["ip"]:
-                stake_trans_1 = json.loads(line[2])
+            if line.m_from == node["ip"]:
+                stake_trans_1 = line.stake_list
                 print("---STAKE TRANS 1 RECEIVED---")
                 break
         else:
@@ -765,9 +605,8 @@ def get_stake_trans(nodes, queue):
         time.sleep(1)
         line = queue.get()
         if line:
-            line = line.split(" ")
-            if line[0] == node["ip"]:
-                stake_trans_2 = json.loads(line[2])
+            if line.m_from == node["ip"]:
+                stake_trans_2 = line.stake_list
                 print("---STAKE TRANS 2 RECEIVED---")
                 break
         else:
@@ -798,11 +637,10 @@ def get_nodes(nodes, queue):
         if tries == 10:
             return get_nodes(pre_nodes, queue)
         time.sleep(1)
-        line = queue.get()
+        line: messages.NREQMessage = queue.get()
         if line:
-            line = line.split(" ")
-            if line[0] == node["ip"]:
-                nodes_1 = json.loads(line[2])
+            if line.m_from == node["ip"]:
+                nodes_1 = line.node_list
                 print("---NODES 1 RECEIVED---")
                 break
         else:
@@ -822,11 +660,10 @@ def get_nodes(nodes, queue):
         if tries == 10:
             return get_nodes(pre_nodes, queue)
         time.sleep(1)
-        line = queue.get()
+        line: messages.NREQMessage = queue.get()
         if line:
-            line = line.split(" ")
-            if line[0] == node["ip"]:
-                nodes_2 = json.loads(line[2])
+            if line.m_from == node["ip"]:
+                nodes_2 = line.node_list
                 print("---NODES 2 RECEIVED---")
                 break
         else:
@@ -840,56 +677,44 @@ def get_nodes(nodes, queue):
     return get_nodes(pre_nodes, queue)
 
 
-def new_node(initiation_time, ip, pub_key, port, node_version, node_type, sig):
+def new_node(initiation_time, ip, pub_key, port, node_version, node_type):
     with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
         nodes = json.load(file)
-    public_key = VerifyingKey.from_string(bytes.fromhex(pub_key), curve=SECP112r2)
-    if public_key.verify(bytes.fromhex(sig), str(initiation_time).encode()):
-        new_node_ = {"time": initiation_time, "ip": ip, "pub_key": pub_key, "port": port, "version": node_version,
-                     "node_type": node_type}
+    new_node_ = {"time": initiation_time, "ip": ip, "pub_key": pub_key, "port": port, "version": node_version,
+                 "node_type": node_type}
+    for node in nodes:
+        if node["pub_key"] == pub_key:
+            return
+        if node["ip"] == ip:
+            return
+    nodes.append(new_node_)
+    with open(f"{os.path.dirname(__file__)}/info/nodes.json", "w") as file:
+        json.dump(nodes, file)
+    print("---NODE ADDED---")
+
+
+def update_node(ip, new_key, port, node_version):
+    with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
+        nodes = json.load(file)
+    for node in nodes:
+        if node["ip"] == ip:
+            node["pub_key"] = new_key
+            node["port"] = port
+            node["version"] = node_version
+    with open(f"{os.path.dirname(__file__)}./info/nodes.json", "w") as file:
+        json.dump(nodes, file)
+        print("NODE UPDATED")
+
+
+def delete_node(deletion_time, ip, pub_key):
+    with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
+        nodes = json.load(file)
+    if time.time() - float(deletion_time) < 30:
         for node in nodes:
-            if node["pub_key"] == pub_key:
-                return
-            if node["ip"] == ip:
-                return
-        nodes.append(new_node_)
+            if node["ip"] == ip and node["pub_key"] == pub_key:
+                nodes.remove(node)
         with open(f"{os.path.dirname(__file__)}/info/nodes.json", "w") as file:
             json.dump(nodes, file)
-        print("---NODE ADDED---")
-    else:
-        return "node invalid"
-
-
-def update_node(ip, update_time, old_key, new_key, port, node_version, sig):
-    with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
-        nodes = json.load(file)
-    public_key = VerifyingKey.from_string(bytes.fromhex(old_key), curve=SECP112r2)
-    if public_key.verify(bytes.fromhex(sig), str(update_time).encode()):
-        for node in nodes:
-            if node["ip"] == ip:
-                node["pub_key"] = new_key
-                node["port"] = port
-                node["version"] = node_version
-        with open(f"{os.path.dirname(__file__)}./info/nodes.json", "w") as file:
-            json.dump(nodes, file)
-            print("NODE UPDATED")
-    else:
-        return "update invalid"
-
-
-def delete_node(deletion_time, ip, pub_key, sig):
-    with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
-        nodes = json.load(file)
-    if time.time() - float(deletion_time) < 60:
-        public_key = VerifyingKey.from_string(bytes.fromhex(pub_key), curve=SECP112r2)
-        if public_key.verify(bytes.fromhex(sig), str(deletion_time).encode()):
-            for node in nodes:
-                if node["ip"] == ip and node["pub_key"] == pub_key:
-                    nodes.remove(node)
-            with open(f"{os.path.dirname(__file__)}/info/nodes.json", "w") as file:
-                json.dump(nodes, file)
-        else:
-            return "cancel invalid"
 
 
 def version():
@@ -1186,17 +1011,4 @@ def message_handler(message):
 
 
 if __name__ == '__main__':
-    arr = TimeOutList()
-
-    for i in (1, 2, 3, 4, 5, 6):
-        arr.append(i)
-    time.sleep(1)
-    print(arr.t_list)
-
-    time.sleep(10)
-
-    if arr:
-        for i in arr:
-            print([i])
-
-    print(arr.t_list)
+    pass
